@@ -1,0 +1,21 @@
+# Dependencies & build output
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env (keep the template)
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db

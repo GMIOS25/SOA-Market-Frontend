@@ -1,6 +1,6 @@
 # 06. Implementation Plan — SOA-Market
 
-> **Tổ chức đội ngũ:** Nhóm **5 thành viên** — học phần *Kiến trúc hướng dịch vụ (SOA)*  
+> **Tổ chức đội ngũ:** Nhóm **5 thành viên** — học phần _Kiến trúc hướng dịch vụ (SOA)_  
 > **Cấu trúc mã nguồn:** **2 Repository tách biệt** (`soa-market-backend` + `soa-market-frontend`), phân công theo **lát cắt dọc (Vertical Slices)** để cả 5 thành viên đều trực tiếp thực hành đầy đủ nguyên lý SOA.  
 > **Thứ tự thực hiện:** Chia thuần theo phụ thuộc kỹ thuật từ **Phase 0 → Phase 8** (không gắn cố định số tuần), có **2 Mốc nghiệm thu lớn**: **Milestone 1 (Core MVP — 6 dịch vụ lõi sau Phase 4)** và **Milestone 2 (Full 10 dịch vụ sau Phase 6)**.
 
@@ -9,9 +9,10 @@
 ## 1. Quy tắc làm việc với AI Coding Agents & Quản trị hợp đồng (Contract-First)
 
 Áp dụng đúng quy trình của `vibecoding.pdf`:
+
 1. **Tuyệt đối không yêu cầu AI sinh toàn bộ app trong 1 lần.**
 2. Khi mở phiên làm việc mới với AI Agent (cho từng dịch vụ hoặc từng Phase), luôn cung cấp cả 6 file trong `docs/vibecoding/` và dùng prompt mở đầu:
-   > *"Đọc kỹ 6 tài liệu trong `docs/vibecoding/`. Chưa viết code vội. Hãy tóm tắt phạm vi Phase X / dịch vụ SVC-YYY bạn phụ trách, liệt kê các hợp đồng API/Event liên quan và kế hoạch file cần tạo, sau đó thực hiện từng bước."*
+   > _"Đọc kỹ 7 tài liệu trong `docs/vibecoding/`. Chưa viết code vội. Hãy tóm tắt phạm vi Phase X / dịch vụ SVC-YYY bạn phụ trách, liệt kê các hợp đồng API/Event liên quan và kế hoạch file cần tạo, sau đó thực hiện từng bước."_
 3. **Luật Contract-First giữa 2 Repo (`soa-market-backend` ↔ `soa-market-frontend`):**
    - Mọi thay đổi API phải cập nhật struct Huma → sinh tự động file OpenAPI 3.0 vào `contracts/openapi/<svc>.yaml` → merge PR được Tech Lead review tương thích ngược (`NFR-MNT-001`).
    - Repo `soa-market-frontend` chạy `npm run sync-contracts` để tái sinh TypeScript types bằng `openapi-typescript` trước khi code UI — cấm gõ tay kiểu dữ liệu API rời rạc.
@@ -22,6 +23,7 @@
 ## 2. Cấu trúc 2 Repository (Directory Blueprint)
 
 ### Repo 1: `soa-market-backend` (Monorepo 10 Go Modules độc lập)
+
 ```text
 soa-market-backend/
 ├── contracts/
@@ -62,6 +64,7 @@ soa-market-backend/
 ```
 
 ### Repo 2: `soa-market-frontend` (React + Vite SPA — 3 Portals)
+
 ```text
 soa-market-frontend/
 ├── Dockerfile                   # Multi-stage Node build -> Nginx Alpine
@@ -93,13 +96,13 @@ soa-market-frontend/
 
 Mỗi thành viên sở hữu **2 dịch vụ Backend Go** (1 ở Giai đoạn 1 Core MVP + 1 ở Giai đoạn 2 Extended) cùng **các màn hình Frontend tương ứng**, bảo đảm cả 5 người đều trực tiếp triển khai đầy đủ chuẩn SOA (OpenAPI, schema riêng, Outbox, NATS, Consul, test). Bảng bóc tách ticket/task chi tiết từng người nằm tại `07-Team-Task-Breakdown.md`.
 
-| Mã | Thành viên | Vai trò kiêm nhiệm | Giai đoạn 1 (Core MVP) | Giai đoạn 2 (Extended) | Frontend Modules (`soa-market-frontend`) |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| **TV1** | **Trần Thanh Cường** | **SOA Infra & Security Lead** | Hạ tầng `infra/`, `pkg/`, `gateway-auth` + **`SVC-IDN`** (kèm Mailpit OTP stub) | **`SVC-RPT`** (Read models, 21 PRM động, AuditLog, Health/DLQ, Reports) | `auth-profile/`, `admin-reports/` (Users, Params, Audit, System/DLQ, Reports) |
-| **TV2** | **Nguyễn Nhật Khánh** | **FE Foundation & Design System Lead** | Khung `soa-market-frontend`, Design System, OpenAPI codegen + **`SVC-SEL`** | **`SVC-REV`** (Đánh giá, tổng hợp điểm, phản hồi, kiểm duyệt) | `layouts/`, `components/shared/`, `seller-shop/`, `reviews/` |
-| **TV3** | **Nguyễn Huy Hoàng** | **Catalog, Inventory & Messaging** | **`SVC-PRD`** (Danh mục 2 cấp, SP/SKU, tìm kiếm 50k SP, tồn kho `validate-and-reserve`) | **`SVC-NTF`** (Full 28-event consumer Email + In-App Notification Center) | `catalog-inventory/` (Home, Search, Product Detail, Seller Products/Inventory, Categories), `notifications/` |
-| **TV4** | **Nguyễn Khánh Dương** | **Saga & Process Orchestration Lead** | **`SVC-ORD`** (Giỏ đa nhà bán, Checkout Saga, tách `SellerOrder`, schedulers `T_PAY`/`T_CONFIRM`/`T_COMPLETE`) | **`SVC-CPL`** (Khiếu nại nhiều bên, thương lượng, CSKH Arbitration & thực thi) | `cart-checkout-order/` (Cart, Checkout ≤3 màn hình, Buyer/Seller Orders), `complaints/` (Buyer, Seller, CSKH Split-View) |
-| **TV5** | **Huỳnh Hữu Đan** | **External Adapters & QA/Resilience Lead** | **`SVC-PAY`** (VNPay + MockPayment) & **`SVC-SHP`** (GHN + MockShipping) | Bộ **Integration Tests, Fault Injection, `k6` Load Test (200 RPS)** & Sandbox smoke test | `payment-shipping/` (Checkout Result, Tracking Timeline, Exceptions, Manual Refund, Mock Control Panel) |
+|   Mã    | Thành viên             | Vai trò kiêm nhiệm                         | Giai đoạn 1 (Core MVP)                                                                                         | Giai đoạn 2 (Extended)                                                                   | Frontend Modules (`soa-market-frontend`)                                                                                 |
+| :-----: | :--------------------- | :----------------------------------------- | :------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| **TV1** | **Trần Thanh Cường**   | **SOA Infra & Security Lead**              | Hạ tầng `infra/`, `pkg/`, `gateway-auth` + **`SVC-IDN`** (kèm Mailpit OTP stub)                                | **`SVC-RPT`** (Read models, 21 PRM động, AuditLog, Health/DLQ, Reports)                  | `auth-profile/`, `admin-reports/` (Users, Params, Audit, System/DLQ, Reports)                                            |
+| **TV2** | **Nguyễn Nhật Khánh**  | **FE Foundation & Design System Lead**     | Khung `soa-market-frontend`, Design System, OpenAPI codegen + **`SVC-SEL`**                                    | **`SVC-REV`** (Đánh giá, tổng hợp điểm, phản hồi, kiểm duyệt)                            | `layouts/`, `components/shared/`, `seller-shop/`, `reviews/`                                                             |
+| **TV3** | **Nguyễn Huy Hoàng**   | **Catalog, Inventory & Messaging**         | **`SVC-PRD`** (Danh mục 2 cấp, SP/SKU, tìm kiếm 50k SP, tồn kho `validate-and-reserve`)                        | **`SVC-NTF`** (Full 28-event consumer Email + In-App Notification Center)                | `catalog-inventory/` (Home, Search, Product Detail, Seller Products/Inventory, Categories), `notifications/`             |
+| **TV4** | **Nguyễn Khánh Dương** | **Saga & Process Orchestration Lead**      | **`SVC-ORD`** (Giỏ đa nhà bán, Checkout Saga, tách `SellerOrder`, schedulers `T_PAY`/`T_CONFIRM`/`T_COMPLETE`) | **`SVC-CPL`** (Khiếu nại nhiều bên, thương lượng, CSKH Arbitration & thực thi)           | `cart-checkout-order/` (Cart, Checkout ≤3 màn hình, Buyer/Seller Orders), `complaints/` (Buyer, Seller, CSKH Split-View) |
+| **TV5** | **Huỳnh Hữu Đan**      | **External Adapters & QA/Resilience Lead** | **`SVC-PAY`** (VNPay + MockPayment) & **`SVC-SHP`** (GHN + MockShipping)                                       | Bộ **Integration Tests, Fault Injection, `k6` Load Test (200 RPS)** & Sandbox smoke test | `payment-shipping/` (Checkout Result, Tracking Timeline, Exceptions, Manual Refund, Mock Control Panel)                  |
 
 ---
 
@@ -126,7 +129,9 @@ flowchart TD
 ## 5. Kế hoạch triển khai chi tiết từng Phase (Phase 0 → Phase 8)
 
 ### Phase 0 — Khởi tạo 2 Repo, Hạ tầng Docker SOA & Thư viện kỹ thuật `pkg/`
+
 **Xây dựng đầu tiên (What to build first):** Nền móng hạ tầng và khung chuẩn hóa để cả 5 người có thể chạy song song không xung đột.
+
 - **Setup steps (`TV1 — Trần Thanh Cường` chủ trì, cả nhóm phối hợp):**
   1. Khởi tạo 2 Git repo (`soa-market-backend`, `soa-market-frontend`), cấu hình `.gitignore`, `Makefile`, GitHub Actions CI cơ bản (`go test -race ./...`, `golangci-lint`, `npm run typecheck`).
   2. Tạo `infra/postgres/init-schemas.sql` sinh đủ **10 schema (`svc_idn`..`svc_rpt`) + 10 user/role cô lập quyền**; kiểm chứng thử user `usr_svc_ord` không thể `SELECT` từ `svc_pay` (`SOA-R02`).
@@ -138,7 +143,9 @@ flowchart TD
 ---
 
 ### Phase 1 — Xác thực, API Gateway ForwardAuth & Khung Frontend Shell
+
 **Xây dựng thứ hai (What to build second):** Mọi dịch vụ nghiệp vụ khác đều phụ thuộc JWT, danh tính người dùng và khung UI chung.
+
 - **Authentication & Gateway (`TV1 — Trần Thanh Cường`):**
   1. Viết `services/svc-idn`: migration 7 bảng `svc_idn`, `sqlc` queries, đầy đủ **20 API** (`FR-ACC-001..006`), ký JWT RS256 + `GET /v1/auth/keys` (JWKS), Refresh Token rotation + reuse detection, lưu `privacyConsentedAt` (NĐ 13/2023), khóa tài khoản phát `user.status_changed` + `audit.recorded` qua Outbox. Gắn adapter SMTP tạm gửi OTP & reset password thẳng vào **Mailpit** (sẽ chuyển qua `SVC-NTF` ở Phase 5).
   2. Viết `services/gateway-auth`: ForwardAuth endpoint cho Traefik — cache JWKS từ `SVC-IDN`, subscribe `user.status_changed` cập nhật NATS KV `revoked_users`, kiểm tra thu hồi JWT tức thì, enforce rate limit (100 req/phút/user, 20 req/phút/IP), sinh `X-Correlation-Id`, ký `X-Gateway-Signature` chuyển tiếp `X-User-Id`/`X-User-Roles`.
@@ -152,7 +159,9 @@ flowchart TD
 ---
 
 ### Phase 2 — Dịch vụ Thực thể Lõi: Nhà bán (`SVC-SEL`) & Sản phẩm/Tồn kho (`SVC-PRD`)
-*(Chạy song song với Phase 3 bởi TV2 — Nguyễn Nhật Khánh và TV3 — Nguyễn Huy Hoàng!)*
+
+_(Chạy song song với Phase 3 bởi TV2 — Nguyễn Nhật Khánh và TV3 — Nguyễn Huy Hoàng!)_
+
 - **`SVC-SEL` (`TV2 — Nguyễn Nhật Khánh`):**
   1. Migration + `sqlc` cho `seller_applications`, `shops`, `pickup_addresses`.
   2. Cài đặt **13 API** (`FR-SEL-001..005`), upload tài liệu KYC lên MinIO (`private-kyc`, kiểm tra magic bytes & dung lượng), phát 4 sự kiện (`seller.application_submitted`, `seller.approved`, `seller.rejected`, `shop.status_changed`).
@@ -170,7 +179,9 @@ flowchart TD
 ---
 
 ### Phase 3 — Dịch vụ Đối tác Ngoài: Thanh toán (`SVC-PAY`) & Vận chuyển (`SVC-SHP`)
-*(Chạy song song với Phase 2 bởi TV5 — Huỳnh Hữu Đan!)*
+
+_(Chạy song song với Phase 2 bởi TV5 — Huỳnh Hữu Đan!)_
+
 - **`SVC-PAY` (`TV5 — Huỳnh Hữu Đan`):**
   1. Migration + `sqlc` cho `payment_transactions` (unique partial index `DC-11`), `payment_allocations`, `refunds`, `seller_ledger_entries`, `webhook_event_logs`, `outbox_events`, `idempotency_records`.
   2. Cài đặt `PaymentGatewayAdapter` với 2 implementation: **`MockPaymentAdapter`** (mặc định, có trang giả lập thanh toán + API điều khiển tiêm lỗi `delay/fail/duplicate/bad-hmac/late`) và **`VnPayAdapter`** (VNPay Sandbox).
@@ -184,7 +195,9 @@ flowchart TD
 ---
 
 ### Phase 4 — Điều phối Giỏ hàng, Checkout Saga & Vòng đời Đơn hàng (`SVC-ORD`) → MILESTONE 1 (CORE MVP)
+
 **Bước hội tụ lõi của toàn bộ 6 dịch vụ Giai đoạn 1 (`TV4 — Nguyễn Khánh Dương` chủ trì, `TV5 — Huỳnh Hữu Đan` hỗ trợ UI Payment/Tracking):**
+
 - **`SVC-ORD` Backend (`TV4 — Nguyễn Khánh Dương`):**
   1. Migration + `sqlc` cho `carts`, `cart_items`, `orders`, `seller_orders`, `order_items`, `order_status_history`, `checkout_processes`, `shipping_quote_cache`, `shop_status_replicas`.
   2. Cài đặt **15 API** (`FR-CRT-001..004`, `FR-ORD-001..010`):
@@ -202,7 +215,9 @@ flowchart TD
 ---
 
 ### Phase 5 — Dịch vụ Mở rộng Phần 1: Đánh giá (`SVC-REV`) & Thông báo (`SVC-NTF`)
-*(Chạy song song với Phase 6 bởi TV2 — Nguyễn Nhật Khánh và TV3 — Nguyễn Huy Hoàng!)*
+
+_(Chạy song song với Phase 6 bởi TV2 — Nguyễn Nhật Khánh và TV3 — Nguyễn Huy Hoàng!)_
+
 - **`SVC-REV` (`TV2 — Nguyễn Nhật Khánh`):**
   1. Migration + `sqlc` cho `eligible_order_items`, `reviews`, `review_replies`, `review_reports`, `rating_aggregates`.
   2. Cài đặt **7 API** (`FR-REV-001..005`), bộ lọc từ cấm cấu hình, cơ chế giữ hiển thị dưới ngưỡng `N_REPORT_HIDE=3` (`OQ-10`), consumer `sellerorder.delivered`, phát `review.published` & `review.visibility_changed` để `SVC-PRD` và `SVC-SEL` cập nhật điểm tổng hợp.
@@ -217,7 +232,9 @@ flowchart TD
 ---
 
 ### Phase 6 — Dịch vụ Mở rộng Phần 2: Khiếu nại (`SVC-CPL`) & Quản trị/Báo cáo (`SVC-RPT`) → MILESTONE 2 (FULL SYSTEM)
-*(Chạy song song với Phase 5 bởi TV4 — Nguyễn Khánh Dương và TV1 — Trần Thanh Cường!)*
+
+_(Chạy song song với Phase 5 bởi TV4 — Nguyễn Khánh Dương và TV1 — Trần Thanh Cường!)_
+
 - **`SVC-CPL` (`TV4 — Nguyễn Khánh Dương`):**
   1. Migration + `sqlc` cho `complaints` (partial unique index `DC-16`), `complaint_messages`, `evidences` (SHA-256, MinIO `private-evidence`), `resolutions`, `complaint_status_history`, `seller_order_replicas`.
   2. Cài đặt **10 API** (`FR-CPL-001..009`), tách độc lập nhiều khiếu nại liên kết `orderId`, phát `complaint.opened` (giữ `SellerOrder` ở `DELIVERED` & giữ `SellerLedgerEntry` ở `ON_HOLD`), cron tự chuyển cấp `T_CPL_SELLER` / `T_CPL_NEGOTIATE`, điều phối thực thi `RETURN_REFUND` (tạo vận đơn hoàn qua `SVC-SHP` → chỉ gửi lệnh hoàn tiền `SVC-PAY` sau khi nhận `shipment.returned` — `OQ-11` → chỉ `CLOSED` sau `refund.completed`).
@@ -231,29 +248,34 @@ flowchart TD
 ---
 
 ### Phase 7 — Kiểm thử Toàn diện, Tiêm lỗi (Fault Injection) & Kiểm thử Tải (`k6`)
+
 **`TV5 — Huỳnh Hữu Đan` chủ trì, cả 5 thành viên viết test cho 2 dịch vụ mình phụ trách:**
+
 1. **Unit & Contract Testing (`go test -race -cover`):**
    - Đạt tối thiểu **≥ 70% coverage** cho tầng logic nghiệp vụ lõi của từng dịch vụ (`NFR-MNT-004`).
    - Tự động xuất OpenAPI 3.0 từ Huma và chạy contract test xác nhận khớp `contracts/openapi/*.yaml` & `contracts/events/*.json` (`TC-NFR-10`).
 2. **Integration Testing (`testcontainers-go`):**
    - Dựng PostgreSQL + NATS JetStream + Consul cô lập; chạy tự động bộ kiểm thử xuyên dịch vụ phủ đủ **84 kịch bản kiểm thử (TC)** của SRS Chương 9 (kèm rút ngắn `T_PAY`/`T_CONFIRM`/`T_COMPLETE`/`T_CPL_SELLER` xuống vài giây qua Consul KV để test tự động không phải chờ).
 3. **Fault Injection Suite (`tests/fault-injection/`):**
-   - *FI-01 (Outbox):* Dừng container NATS → thực hiện đặt hàng/xác nhận → bật lại NATS → xác nhận 0 sự kiện bị mất (`NFR-REL-001`).
-   - *FI-02 (Graceful Degradation):* Dừng `svc-rev`, `svc-ntf`, `svc-rpt` → duyệt SP, đặt hàng, thanh toán vẫn thành công 100%, FE hiện `<ServiceFallbackBanner />` (`NFR-REL-005`).
-   - *FI-03 (Payment Anomalies):* Gửi webhook trùng 3 lần, chữ ký sai, thanh toán đến muộn sau khi hủy đơn (`FR-ORD-008`), đánh rơi webhook để cron `inquiry` cứu đơn (`FR-PAY-003`).
-   - *FI-04 (Shipping & DLQ):* Tiêm lỗi ĐVVC hết `N_RETRY` → vận đơn `CREATE_FAILED`, đơn không tự hủy, Seller bấm Retry thành công; bắn poison message → vào `SOA_DLQ` → Admin replay trên UI (`NFR-REL-007`).
-   - *FI-05 (Security & IDOR):* Chạy kiểm thử chéo 2 tài khoản Buyer/Seller trên toàn bộ API xác nhận 0 lỗ hổng IDOR, quét tệp `EICAR`, kiểm thử rate limit 429 (`TC-NFR-05`, `TC-NFR-06`).
+   - _FI-01 (Outbox):_ Dừng container NATS → thực hiện đặt hàng/xác nhận → bật lại NATS → xác nhận 0 sự kiện bị mất (`NFR-REL-001`).
+   - _FI-02 (Graceful Degradation):_ Dừng `svc-rev`, `svc-ntf`, `svc-rpt` → duyệt SP, đặt hàng, thanh toán vẫn thành công 100%, FE hiện `<ServiceFallbackBanner />` (`NFR-REL-005`).
+   - _FI-03 (Payment Anomalies):_ Gửi webhook trùng 3 lần, chữ ký sai, thanh toán đến muộn sau khi hủy đơn (`FR-ORD-008`), đánh rơi webhook để cron `inquiry` cứu đơn (`FR-PAY-003`).
+   - _FI-04 (Shipping & DLQ):_ Tiêm lỗi ĐVVC hết `N_RETRY` → vận đơn `CREATE_FAILED`, đơn không tự hủy, Seller bấm Retry thành công; bắn poison message → vào `SOA_DLQ` → Admin replay trên UI (`NFR-REL-007`).
+   - _FI-05 (Security & IDOR):_ Chạy kiểm thử chéo 2 tài khoản Buyer/Seller trên toàn bộ API xác nhận 0 lỗ hổng IDOR, quét tệp `EICAR`, kiểm thử rate limit 429 (`TC-NFR-05`, `TC-NFR-06`).
 4. **Load Testing (`k6` — `tests/load/`):**
    - Seed dữ liệu chuẩn (50.000 sản phẩm, ≥ 3 nhà bán, nhiều biến thể, đủ 5 vai trò).
    - Chạy kịch bản hỗn hợp **200 req/s** (**10 checkout/s**, **500 VUs**) trong 15 phút → xác minh p95 đọc ≤ 500ms, ghi ≤ 800ms, search ≤ 1s, checkout ≤ 2s, lỗi 5xx < 1% (`TC-NFR-01`, `TC-PRD-06`).
+
 - **Deliverables:** Báo cáo coverage ≥ 70%, kết quả pass 84/84 TC (`ACP-01..ACP-09`), báo cáo `k6` & báo cáo đối soát tiền – đơn 0 sai lệch.
 
 ---
 
 ### Phase 8 — Observability, Scaling, Sandbox Smoke Test & Hoàn thiện Bảo vệ Môn học
+
 **Cả 5 thành viên cùng rà soát và diễn tập bảo vệ:**
+
 1. **Bật & Tinh chỉnh Observability (`docker compose --profile observability up -d` — `TV1 — Trần Thanh Cường`):**
-   - Dựng sẵn 2 Grafana Dashboard: (1) *SOA Overview* (RPS, 5xx rate, p95 latency 10 dịch vụ từ Prometheus), (2) *Order End-to-End Trace* (nhập `X-Correlation-Id` xem trọn log Loki + trace Tempo xuyên qua Traefik → `SVC-ORD` → `SVC-PRD` → `SVC-PAY` → `SVC-SHP` — `TC-NFR-07`).
+   - Dựng sẵn 2 Grafana Dashboard: (1) _SOA Overview_ (RPS, 5xx rate, p95 latency 10 dịch vụ từ Prometheus), (2) _Order End-to-End Trace_ (nhập `X-Correlation-Id` xem trọn log Loki + trace Tempo xuyên qua Traefik → `SVC-ORD` → `SVC-PRD` → `SVC-PAY` → `SVC-SHP` — `TC-NFR-07`).
 2. **Kiểm chứng Multi-Replica Scaling & Rolling Update (`TV1 — Trần Thanh Cường` + `TV4 — Nguyễn Khánh Dương`):**
    - Chạy `docker compose up -d --scale svc-ord=2 --scale svc-prd=2`: xác minh Consul đăng ký 2 instance, Traefik chia tải, 2 bản sao cron không hủy/hoàn tiền trùng (`TC-NFR-02`, `TC-NFR-09`), tắt 1 bản sao khi có tải không lỗi 5xx (`NFR-AVA-005`).
 3. **VNPay Sandbox & GHN Sandbox Smoke Test (`TV5 — Huỳnh Hữu Đan`):**
@@ -263,8 +285,9 @@ flowchart TD
 5. **Hoàn thiện Hồ sơ Báo cáo & Kịch bản Demo 15 phút (`Cả nhóm` — xem phân vai chi tiết tại `07-Team-Task-Breakdown.md`):**
    - Hoàn thiện 5 tệp ADR (`contracts/adr/ADR-01..05.md`), bổ sung MSSV/vai trò hoàn tất `OQ-01`, cập nhật `README.md` 1-lệnh khởi chạy ở cả 2 repo.
    - **Kịch bản trình diễn bảo vệ SOA chuẩn (5 thành viên chia phần):**
-     1. *Kiến trúc & Cô lập:* Mở Consul UI (10 dịch vụ khỏe) + chạy query chứng minh DB role isolation (`SOA-R02`) + đổi `T_PAY` động qua UI (`NFR-MNT-005`).
-     2. *Kịch bản lõi đa nhà bán:* Đặt hàng 3 shop (≤ 3 màn hình) → Thanh toán 1 lần → Shop A giao thành công → Shop B quá hạn `T_CONFIRM` tự hủy & hoàn 1 phần → Shop C giao lỗi hoàn hàng.
-     3. *Kịch bản chịu lỗi & Saga:* Bật chế độ thanh toán đến muộn (tự hoàn 100%), tắt `SVC-REV` & `SVC-NTF` (FE giảm cấp mượt bằng Fallback Banner), tắt NATS rồi bật lại (Outbox không mất sự kiện), replay DLQ trên Admin UI.
-     4. *Truy vết phân tán:* Copy `X-Correlation-Id` của đơn vừa đặt vào Grafana/Loki/Tempo cho giảng viên thấy toàn bộ hành trình xuyên 10 dịch vụ.
+     1. _Kiến trúc & Cô lập:_ Mở Consul UI (10 dịch vụ khỏe) + chạy query chứng minh DB role isolation (`SOA-R02`) + đổi `T_PAY` động qua UI (`NFR-MNT-005`).
+     2. _Kịch bản lõi đa nhà bán:_ Đặt hàng 3 shop (≤ 3 màn hình) → Thanh toán 1 lần → Shop A giao thành công → Shop B quá hạn `T_CONFIRM` tự hủy & hoàn 1 phần → Shop C giao lỗi hoàn hàng.
+     3. _Kịch bản chịu lỗi & Saga:_ Bật chế độ thanh toán đến muộn (tự hoàn 100%), tắt `SVC-REV` & `SVC-NTF` (FE giảm cấp mượt bằng Fallback Banner), tắt NATS rồi bật lại (Outbox không mất sự kiện), replay DLQ trên Admin UI.
+     4. _Truy vết phân tán:_ Copy `X-Correlation-Id` của đơn vừa đặt vào Grafana/Loki/Tempo cho giảng viên thấy toàn bộ hành trình xuyên 10 dịch vụ.
+
 - **Deliverables:** Bộ 2 repo sạch, chạy ổn định bằng `docker compose up -d`, đầy đủ tài liệu ADR/OpenAPI, báo cáo kiểm thử `k6`/84 TC và kịch bản demo bảo vệ môn học hoàn chỉnh.

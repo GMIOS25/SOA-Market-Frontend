@@ -1,0 +1,57 @@
+{
+  "copy": {
+    "copy": "Sao chép {{label}}",
+    "copied": "Đã sao chép"
+  },
+  "package": {
+    "shopIcon": "Gian hàng",
+    "code": "mã gói hàng",
+    "itemsAmount": "Tiền hàng",
+    "shippingFee": "Phí vận chuyển",
+    "estimatedFee": "Phí ước tính",
+    "eta": "Dự kiến giao {{date}}",
+    "packageTotal": "Tổng gói hàng",
+    "quantityTimesPrice": "{{quantity}} × {{price}}",
+    "items": "Sản phẩm trong gói"
+  },
+  "refund": {
+    "title": "Đối chiếu hoàn tiền",
+    "paidTotal": "Tổng đã thanh toán ban đầu",
+    "refundLine": "Hoàn tiền — Gói {{code}} ({{shop}})",
+    "remaining": "Giá trị đơn thực tế còn lại",
+    "status": {
+      "SUCCEEDED": "Đã hoàn",
+      "PENDING": "Đang hoàn",
+      "PROCESSING": "Đang hoàn",
+      "FAILED": "Hoàn lỗi – đang xử lý"
+    }
+  },
+  "fallback": {
+    "defaultMessage": "Tạm thời chưa tải được khối thông tin này.",
+    "retry": "Thử tải lại khối này",
+    "retrying": "Đang tải lại..."
+  },
+  "sla": {
+    "remaining": "Còn {{duration}}",
+    "overdue": "Quá hạn {{duration}}",
+    "deadline": "Hạn {{date}}"
+  },
+  "audit": {
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "Nhập lý do cụ thể cho thao tác này...",
+    "reasonHint": "Tối thiểu {{min}} ký tự.",
+    "reasonTooShort": "Lý do cần tối thiểu {{min}} ký tự.",
+    "counter": "{{count}}/{{max}} ký tự",
+    "auditNotice": "Hành động này sẽ được ghi vào Nhật ký kiểm toán bất biến.",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "submitting": "Đang xử lý...",
+    "correlationId": "Mã tra cứu"
+  },
+  "sync": {
+    "syncedAt": "Đồng bộ sự kiện lúc {{time}}",
+    "eventual": "Dữ liệu tổng hợp cập nhật lúc {{datetime}} (nhất quán cuối cùng)",
+    "refresh": "Làm mới dữ liệu",
+    "never": "Chưa đồng bộ"
+  }
+}

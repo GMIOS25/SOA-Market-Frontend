@@ -20,6 +20,11 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // `npx shadcn add` có lúc sinh `import { cn } from "cn"` và tự cài 1 gói npm lạ tên "cn".
+      'no-restricted-imports': [
+        'error',
+        { paths: [{ name: 'cn', message: 'Dùng `import { cn } from "@/lib/utils"` (shadcn CLI sinh sai alias).' }] },
+      ],
     },
   },
   {

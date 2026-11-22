@@ -149,6 +149,18 @@ export const routes: RouteObject[] = [
         ],
       },
 
+      // Preview 6 component dùng chung (T2-04) — chỉ ở `npm run dev`, bị loại khỏi bản build production.
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: 'dev/components',
+              lazy: async () => ({
+                Component: (await import('@/pages/dev/ComponentsPreviewPage')).ComponentsPreviewPage,
+              }),
+            } satisfies RouteObject,
+          ]
+        : []),
+
       {
         element: <BuyerLayout />,
         children: [{ path: '*', element: <NotFoundPage /> }],

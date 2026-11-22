@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@/lib/dayjs'
 import '@/lib/i18n'
+import '@/styles/fonts'
 import './index.css'
 import { App } from './app/App'
 

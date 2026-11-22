@@ -1,0 +1,6 @@
+# Enforce LF line endings across all platforms (matches soa-market-backend) so Docker/Nginx files never break on Windows.
+* text=auto eol=lf
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary

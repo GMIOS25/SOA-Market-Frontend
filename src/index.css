@@ -2,63 +2,157 @@
 @import 'tw-animate-css';
 
 /*
- * shadcn/ui base tokens mapped to "Clean Modern Commerce" (04-UI-UX-Design-Brief.md §2).
- * T2-02 sẽ bổ sung font Be Vietnam Pro / JetBrains Mono, token CTA cam & Semantic Status Badges.
+ * SOA-Market Design Tokens — "Clean Modern Commerce" (04-UI-UX-Design-Brief.md §2–3).
+ * Đây là nguồn chuẩn duy nhất của màu sắc; src/styles/tokens.test.ts đọc file này để kiểm tra
+ * tương phản WCAG 2.1 AA (NFR-USA-004). Mọi cặp `--x` / `--x-foreground` và badge trạng thái phải ≥ 4.5:1.
  */
 :root {
-  --radius: 0.5rem;
-  --background: #f8fafc; /* slate-50 — page background */
-  --foreground: #0f172a; /* slate-900 */
+  --radius: 0.5rem; /* rounded-lg = 8px cho card/modal */
+
+  /* ---- Nền & chữ trung tính ---- */
+  --background: #f8fafc; /* slate-50 — nền trang */
+  --foreground: #0f172a; /* slate-900 — chữ chính, số tiền */
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569; /* slate-600 — mô tả phụ, nhãn, timestamp */
+  --border: #e2e8f0; /* slate-200 */
+  --input: #cbd5e1; /* slate-300 — viền input & nút secondary */
+  --ring: #2563eb; /* blue-600 — focus ring */
+
+  /* ---- Primary (Tin cậy) — nút hệ thống Seller/Admin, link, tab ---- */
   --primary: #1d4ed8; /* blue-700 */
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
+  --primary-hover: #1e40af; /* blue-800 */
+  --primary-soft: #eff6ff; /* blue-50 — nền highlight, sidebar active */
+
+  /* ---- CTA mua sắm (Thêm vào giỏ, Đặt hàng & Thanh toán) ----
+   * Lệch có chủ đích so với Brief (#EA580C): chữ trắng trên #EA580C chỉ đạt 3.56:1 < 4.5:1.
+   * Nền CTA dùng orange-700 (5.18:1); #EA580C chỉ dùng cho giá tiền cỡ lớn ≥ 20px bold (ngưỡng chữ lớn 3:1). */
+  --cta: #c2410c; /* orange-700 */
+  --cta-foreground: #ffffff;
+  --cta-hover: #9a3412; /* orange-800 */
+  --price: #ea580c; /* orange-600 — CHỈ cho Price Large (20–24px, 700) */
+
+  /* ---- shadcn semantic aliases ---- */
+  --secondary: #ffffff;
   --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569; /* slate-600 */
-  --accent: #eff6ff; /* blue-50 — shadcn hover/active surface */
+  --accent: #eff6ff; /* shadcn: nền hover/active của menu, không phải CTA */
   --accent-foreground: #1d4ed8;
-  --destructive: #dc2626;
-  --border: #e2e8f0; /* slate-200 */
-  --input: #cbd5e1;
-  --ring: #2563eb; /* focus ring blue-600 */
+  --destructive: #dc2626; /* red-600 */
+  --destructive-foreground: #ffffff;
+
+  /* ---- Semantic Status Badges (Brief §2.2): nền nhạt + chữ đậm + viền ---- */
+  --status-neutral: #f1f5f9;
+  --status-neutral-foreground: #334155;
+  --status-neutral-border: #cbd5e1;
+  --status-info: #eff6ff;
+  --status-info-foreground: #1d4ed8;
+  --status-info-border: #bfdbfe;
+  --status-warning: #fffbeb;
+  --status-warning-foreground: #b45309;
+  --status-warning-border: #fde68a;
+  --status-success: #ecfdf5;
+  --status-success-foreground: #047857;
+  --status-success-border: #a7f3d0;
+  --status-danger: #fef2f2;
+  --status-danger-foreground: #b91c1c;
+  --status-danger-border: #fecaca;
+
+  /* ---- SLA countdown (Brief §4.2.4) — chữ trên nền trắng ---- */
+  --sla-normal: #475569;
+  --sla-warning: #c2410c; /* còn ≤ 25% thời gian */
+  --sla-overdue: #b91c1c; /* đã quá hạn */
+
+  /* ---- Fallback Banner giảm cấp (Brief §4.2.3, NFR-REL-005) ---- */
+  --fallback: #fffbeb;
+  --fallback-foreground: #b45309;
+  --fallback-border: #f59e0b;
+}
+
+@theme {
+  /* Be Vietnam Pro: tối ưu dấu thanh tiếng Việt; JetBrains Mono: mã Order/SellerOrder/trackingCode/eventId/SHA-256. */
+  --font-sans: 'Be Vietnam Pro', Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px); /* 6px — button/input */
+  --radius-lg: var(--radius); /* 8px — card/modal */
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-cta-hover: var(--cta-hover);
+  --color-price: var(--price);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-status-neutral: var(--status-neutral);
+  --color-status-neutral-foreground: var(--status-neutral-foreground);
+  --color-status-neutral-border: var(--status-neutral-border);
+  --color-status-info: var(--status-info);
+  --color-status-info-foreground: var(--status-info-foreground);
+  --color-status-info-border: var(--status-info-border);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-success: var(--status-success);
+  --color-status-success-foreground: var(--status-success-foreground);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-foreground: var(--status-danger-foreground);
+  --color-status-danger-border: var(--status-danger-border);
+
+  --color-sla-normal: var(--sla-normal);
+  --color-sla-warning: var(--sla-warning);
+  --color-sla-overdue: var(--sla-overdue);
+
+  --color-fallback: var(--fallback);
+  --color-fallback-foreground: var(--fallback-foreground);
+  --color-fallback-border: var(--fallback-border);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-size: 14px;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 14px; /* Body 14px / 1.6 (Brief §3.2) */
     line-height: 1.6;
+  }
+  /* Số tiền & bảng biểu luôn thẳng cột (Brief §3.1). */
+  table,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
   }
 }

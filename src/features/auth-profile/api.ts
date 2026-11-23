@@ -1,12 +1,5 @@
-import createClient, { type Middleware } from 'openapi-fetch'
+import { createApiClient } from '@/api/client'
 import type { SvcIdn } from '@/api/generated'
-import { env } from '@/lib/env'
-import {
-  clearAuthSession,
-  getAuthSession,
-  lockoutAuthSession,
-  setAuthSession,
-} from './session'
 
 export type ParsedApiError = {
   status: number
@@ -54,108 +47,9 @@ export class AuthApiError extends Error {
   }
 }
 
-let refreshInFlight: Promise<string | null> | null = null
-
-async function silentRefreshToken(): Promise<string | null> {
-  if (refreshInFlight) return refreshInFlight
-
-  refreshInFlight = (async () => {
-    const { refreshToken } = getAuthSession()
-    if (!refreshToken) {
-      clearAuthSession()
-      return null
-    }
-    try {
-      const res = await fetch(`${env.apiBaseUrl}/v1/auth/token/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Correlation-Id': crypto.randomUUID(),
-        },
-        body: JSON.stringify({ refreshToken }),
-      })
-      if (!res.ok) {
-        if (res.status === 403) {
-          const body = (await res.json().catch(() => null)) as Partial<SvcIdn.components['schemas']['APIError']> | null
-          lockoutAuthSession(body?.message || 'Tài khoản của bạn đã bị khóa bởi quản trị viên.')
-        } else {
-          clearAuthSession()
-        }
-        return null
-      }
-      const data = (await res.json()) as SvcIdn.components['schemas']['AuthTokensResult']
-      setAuthSession({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: data.user,
-      })
-      return data.accessToken
-    } catch {
-      return null
-    } finally {
-      refreshInFlight = null
-    }
-  })()
-
-  return refreshInFlight
-}
-
-const requestMap = new WeakMap<Request, Request>()
-
-const authInterceptorMiddleware: Middleware = {
-  async onRequest({ request }) {
-    const nextReq = request.clone()
-    if (!nextReq.headers.has('X-Correlation-Id')) {
-      nextReq.headers.set('X-Correlation-Id', crypto.randomUUID())
-    }
-    const { accessToken } = getAuthSession()
-    if (accessToken && !nextReq.headers.has('Authorization')) {
-      nextReq.headers.set('Authorization', `Bearer ${accessToken}`)
-    }
-    requestMap.set(request, nextReq.clone())
-    return nextReq
-  },
-
-  async onResponse({ request, response }) {
-    const urlPath = new URL(request.url, 'http://localhost').pathname
-    if (urlPath.startsWith('/v1/auth/login') || urlPath.startsWith('/v1/auth/token/refresh')) {
-      return response
-    }
-
-    if (response.status === 403) {
-      const cloned = response.clone()
-      const body = (await cloned.json().catch(() => null)) as Partial<SvcIdn.components['schemas']['APIError']> | null
-      if (body?.code === 'ACCOUNT_LOCKED') {
-        lockoutAuthSession(body.message || 'Tài khoản của bạn đã bị khóa bởi quản trị viên.')
-      }
-      return response
-    }
-
-    if (response.status === 401 && getAuthSession().refreshToken) {
-      const cloned = response.clone()
-      const body = (await cloned.json().catch(() => null)) as Partial<SvcIdn.components['schemas']['APIError']> | null
-      if (body?.code === 'TOKEN_REVOKED' || body?.code === 'ACCOUNT_LOCKED') {
-        lockoutAuthSession(body.message || 'Phiên đăng nhập đã bị thu hồi.')
-        return response
-      }
-
-      const freshAccessToken = await silentRefreshToken()
-      if (!freshAccessToken) {
-        return response
-      }
-
-      const origClone = requestMap.get(request)
-      if (!origClone) return response
-      origClone.headers.set('Authorization', `Bearer ${freshAccessToken}`)
-      return fetch(origClone)
-    }
-
-    return response
-  },
-}
-
-export const idnClient = createClient<SvcIdn.paths>({ baseUrl: env.apiBaseUrl })
-idnClient.use(authInterceptorMiddleware)
+// Dùng chung client của T2-03: authFetch tự gắn Bearer + X-Correlation-Id, silent refresh khi 401
+// (single-flight + khóa giữa các tab) và thu hồi phiên khi ACCOUNT_LOCKED (FR-ACC-002, FR-ACC-006).
+export const idnClient = createApiClient<SvcIdn.paths>()
 
 function unwrap<T>(result: { data?: T; error?: unknown; response: Response }): T {
   if (result.error !== undefined || !result.response.ok || result.data === undefined) {

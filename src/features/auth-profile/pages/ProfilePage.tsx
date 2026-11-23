@@ -106,7 +106,6 @@ export function ProfilePage() {
 
   return (
     <AuthAccountShell
-      requireAuth
       title={t('authProfile.profile.title')}
       subtitle="Quản lý thông tin tài khoản, đồng ý dữ liệu cá nhân và bảo mật phiên đăng nhập."
     >

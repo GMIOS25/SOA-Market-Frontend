@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
     preview: { port: 4173 },
     test: {
       environment: 'node',
-      include: ['src/**/*.test.ts'],
+      include: ['src/**/*.test.{ts,tsx}'],
     },
   }
 })

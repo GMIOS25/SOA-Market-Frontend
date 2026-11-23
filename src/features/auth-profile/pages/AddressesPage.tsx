@@ -123,7 +123,6 @@ export function AddressesPage() {
 
   return (
     <AuthAccountShell
-      requireAuth
       title={t('authProfile.addresses.title')}
       subtitle="Địa chỉ được chụp cố định vào đơn hàng tại thời điểm thanh toán."
     >

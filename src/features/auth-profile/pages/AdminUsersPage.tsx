@@ -93,8 +93,6 @@ export function AdminUsersPage() {
 
   return (
     <AuthAccountShell
-      requireAuth
-      requireRoles={['ADMINISTRATOR']}
       title={t('authProfile.adminUsers.title')}
       subtitle={t('authProfile.adminUsers.subtitle')}
     >

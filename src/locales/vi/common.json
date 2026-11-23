@@ -1,16 +1,56 @@
 {
   "appName": "SOA-Market",
+  "skipToContent": "Bỏ qua đến nội dung chính",
   "portal": {
     "buyer": "Cổng Người mua",
     "seller": "Kênh Người bán",
-    "admin": "Quản trị – CSKH"
+    "admin": "Quản trị – CSKH",
+    "toSeller": "Kênh Người bán",
+    "toBuyer": "Về sàn mua sắm",
+    "toAdmin": "Trang quản trị"
+  },
+  "roles": {
+    "BUYER": "Người mua",
+    "SELLER": "Nhà bán",
+    "CS": "CSKH",
+    "ADMINISTRATOR": "Quản trị viên"
+  },
+  "header": {
+    "searchLabel": "Tìm kiếm sản phẩm",
+    "searchPlaceholder": "Tìm sản phẩm, thương hiệu, gian hàng...",
+    "searchSubmit": "Tìm kiếm",
+    "cart": "Giỏ hàng",
+    "notifications": "Thông báo",
+    "openMenu": "Mở menu điều hướng",
+    "collapseSidebar": "Thu gọn thanh bên",
+    "expandSidebar": "Mở rộng thanh bên",
+    "breadcrumb": "Vị trí hiện tại",
+    "mainNav": "Điều hướng chính"
+  },
+  "account": {
+    "menu": "Tài khoản",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "profile": "Hồ sơ cá nhân",
+    "addresses": "Sổ địa chỉ",
+    "orders": "Đơn hàng của tôi",
+    "becomeSeller": "Đăng ký bán hàng",
+    "logout": "Đăng xuất",
+    "logoutAllDevices": "Đăng xuất khỏi tất cả thiết bị"
   },
   "placeholder": {
-    "underConstruction": "Màn hình đang được xây dựng."
+    "underConstruction": "Màn hình đang được xây dựng.",
+    "owner": "Phụ trách: {{task}}"
+  },
+  "footer": {
+    "tagline": "Sàn thương mại điện tử đa nhà bán — đồ án Kiến trúc hướng dịch vụ (SOA)."
   },
   "error": {
     "notFoundTitle": "Không tìm thấy trang",
     "notFoundDescription": "Trang bạn tìm không tồn tại hoặc đã bị di chuyển.",
+    "forbiddenTitle": "Không có quyền truy cập",
+    "forbiddenDescription": "Tài khoản của bạn không có quyền truy cập khu vực này.",
+    "backToPortal": "Về cổng của bạn",
     "backHome": "Về trang chủ"
   },
   "authProfile": {

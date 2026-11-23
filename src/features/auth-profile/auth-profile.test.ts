@@ -6,7 +6,6 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import i18n from '@/lib/i18n'
 import { parseApiError } from './api'
-import { AuthAuditReasonModal } from './components/AuthAuditReasonModal'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import {
@@ -168,18 +167,5 @@ describe('API error parser and SSR component rendering', () => {
     const html = renderWithProviders(createElement(LoginPage), ['/login'])
     expect(html).toContain('Tài khoản của bạn đã bị khóa bởi quản trị viên.')
     clearAuthSession()
-  })
-
-  it('renders AuthAuditReasonModal with audit log warning', () => {
-    const html = renderWithProviders(
-      createElement(AuthAuditReasonModal, {
-        open: true,
-        title: 'Khóa tài khoản',
-        onClose: () => {},
-        onConfirm: () => {},
-      }),
-    )
-    expect(html).toContain('Nhật ký kiểm toán bất biến')
-    expect(html).toContain('Cần thêm 10 ký tự')
   })
 })

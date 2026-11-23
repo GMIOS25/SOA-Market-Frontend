@@ -24,12 +24,14 @@ type StatusBadgeProps = Omit<ComponentProps<'span'>, 'children'> & {
   status: string
   /** Ghi đè tông màu khi cùng 1 mã mang nghĩa khác theo ngữ cảnh. */
   tone?: StatusTone
+  /** Ghi đè nhãn theo ngữ cảnh, VD hoàn tiền `SUCCEEDED` → "Đã hoàn" thay vì "Thành công". */
+  label?: string
 }
 
 /** Pill badge trạng thái: nền nhạt + chữ đậm + chấm tròn + nhãn tiếng Việt (Brief §2.2). */
-export function StatusBadge({ status, tone, className, ...props }: StatusBadgeProps) {
+export function StatusBadge({ status, tone, label: labelOverride, className, ...props }: StatusBadgeProps) {
   const { t } = useTranslation('status')
-  const label = isKnownStatus(status) ? t(status) : status
+  const label = labelOverride ?? (isKnownStatus(status) ? t(status) : status)
 
   return (
     <span

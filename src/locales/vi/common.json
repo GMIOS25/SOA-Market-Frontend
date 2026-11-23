@@ -1,0 +1,16 @@
+{
+  "appName": "SOA-Market",
+  "portal": {
+    "buyer": "Cổng Người mua",
+    "seller": "Kênh Người bán",
+    "admin": "Quản trị – CSKH"
+  },
+  "placeholder": {
+    "underConstruction": "Màn hình đang được xây dựng."
+  },
+  "error": {
+    "notFoundTitle": "Không tìm thấy trang",
+    "notFoundDescription": "Trang bạn tìm không tồn tại hoặc đã bị di chuyển.",
+    "backHome": "Về trang chủ"
+  }
+}

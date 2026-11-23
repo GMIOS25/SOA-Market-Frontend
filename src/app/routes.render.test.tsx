@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { StaticRouterProvider, createStaticHandler, createStaticRouter } from 'react-router'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,11 +16,16 @@ async function render(path: string, roles?: Role[]): Promise<string> {
       user: { userId: 'u-test', email: 'test@soa.vn', fullName: 'Test', phone: '', createdAt: '', status: 'ACTIVE', roles },
     })
   }
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const handler = createStaticHandler(routes)
   const context = await handler.query(new Request(`http://localhost${path}`))
   if (context instanceof Response) throw new Error(`unexpected redirect ${context.status}`)
   const router = createStaticRouter(handler.dataRoutes, context)
-  return renderToString(<StaticRouterProvider router={router} context={context} hydrate={false} />)
+  return renderToString(
+    <QueryClientProvider client={queryClient}>
+      <StaticRouterProvider router={router} context={context} hydrate={false} />
+    </QueryClientProvider>,
+  )
 }
 
 const FORBIDDEN = 'Không có quyền truy cập'
@@ -46,6 +52,12 @@ describe('portal rendering by role', () => {
   it('buyer can open the cart (BUYER-only route)', async () => {
     const html = await render('/cart', ['BUYER'])
     expect(html).toContain('Giỏ hàng')
+    expect(html).not.toContain(FORBIDDEN)
+  })
+
+  it('buyer can open the checkout (BUYER-only route)', async () => {
+    const html = await render('/checkout', ['BUYER'])
+    expect(html).toContain('Xác nhận &amp; Đặt hàng')
     expect(html).not.toContain(FORBIDDEN)
   })
 

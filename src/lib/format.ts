@@ -40,6 +40,11 @@ export function formatDateTime(input: DateInput): string {
   return toAppTime(input).format('DD/MM/YYYY HH:mm')
 }
 
+/** "14:00:05" — SyncTimestampBadge, timeline trong ngày. */
+export function formatTime(input: DateInput): string {
+  return toAppTime(input).format('HH:mm:ss')
+}
+
 /** "22/11/2026 14:00:05 +07:00" — dùng cho tooltip của thời gian tương đối. */
 export function formatDateTimeFull(input: DateInput): string {
   return toAppTime(input).format('DD/MM/YYYY HH:mm:ss Z')

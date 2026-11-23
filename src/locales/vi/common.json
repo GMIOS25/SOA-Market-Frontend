@@ -116,13 +116,6 @@
       "subtitle": "Tìm kiếm tài khoản, phân quyền vai trò và khóa/mở khóa tài khoản có ghi Nhật ký kiểm toán.",
       "forbiddenTitle": "403 — Không có quyền truy cập",
       "forbiddenDesc": "Chỉ Quản trị viên (ADMINISTRATOR) mới có quyền truy cập màn hình này."
-    },
-    "auditDialog": {
-      "notice": "Hành động này sẽ được ghi vào Nhật ký kiểm toán bất biến (AuditLog).",
-      "reasonLabel": "Lý do thực hiện (bắt buộc tối thiểu 10 ký tự)",
-      "reasonPlaceholder": "Nhập lý do cụ thể ảnh hưởng đến quyền tài khoản...",
-      "cancel": "Hủy bỏ",
-      "confirm": "Xác nhận thực hiện"
     }
   }
 }

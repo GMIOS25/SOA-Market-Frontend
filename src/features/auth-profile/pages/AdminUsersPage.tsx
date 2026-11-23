@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Lock, Search, Shield, Unlock } from 'lucide-react'
 import type { SvcIdn } from '@/api/generated'
+import { AuditReasonDialog } from '@/components/shared'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { formatDateTime } from '@/lib/format'
 import { AuthAccountShell } from '../components/AuthAccountShell'
-import { AuthAuditReasonModal } from '../components/AuthAuditReasonModal'
 import {
   AuthApiError,
   apiAdminListUsers,
@@ -39,7 +39,6 @@ export function AdminUsersPage() {
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
-  const [modalError, setModalError] = useState<string | null>(null)
 
   const usersQuery = useQuery({
     queryKey: ['admin', 'users', { page, q: queryText, status: statusFilter, role: roleFilter }],
@@ -66,16 +65,11 @@ export function AdminUsersPage() {
     },
     onSuccess: () => {
       setPendingAction(null)
-      setModalError(null)
       void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-    },
-    onError: (err) => {
-      setModalError(err instanceof AuthApiError ? err.parsed.message : 'Thao tác quản trị thất bại.')
     },
   })
 
   const openActionModal = (action: Exclude<PendingAction, null>) => {
-    setModalError(null)
     if (action.kind === 'roles') {
       setSelectedRoles(action.user.roles ?? ['BUYER'])
     }
@@ -331,8 +325,11 @@ export function AdminUsersPage() {
         </>
       )}
 
-      <AuthAuditReasonModal
+      <AuditReasonDialog
         open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null)
+        }}
         title={
           pendingAction?.kind === 'lock'
             ? `Khóa tài khoản ${pendingAction.user.email}`
@@ -345,20 +342,16 @@ export function AdminUsersPage() {
             ? 'Access token hiện tại của người dùng sẽ bị thu hồi ngay lập tức qua NATS KV.'
             : undefined
         }
-        destructive={pendingAction?.kind === 'lock'}
-        loading={actionMutation.isPending}
-        errorMessage={modalError}
-        onClose={() => {
-          setPendingAction(null)
-          setModalError(null)
-        }}
-        onConfirm={(reason) => {
+        variant={pendingAction?.kind === 'lock' ? 'destructive' : 'default'}
+        confirmDisabled={pendingAction?.kind === 'roles' && selectedRoles.length === 0}
+        onConfirm={async (reason) => {
           if (!pendingAction) return
-          if (pendingAction.kind === 'roles' && selectedRoles.length === 0) {
-            setModalError('Phải chọn ít nhất 1 vai trò cho người dùng.')
-            return
+          try {
+            await actionMutation.mutateAsync({ action: pendingAction, reason })
+          } catch (err) {
+            // AuditReasonDialog giữ dialog mở và hiển thị message của lỗi ném ra.
+            throw err instanceof AuthApiError ? err : new Error('Thao tác quản trị thất bại.')
           }
-          actionMutation.mutate({ action: pendingAction, reason })
         }}
       >
         {pendingAction?.kind === 'roles' && (
@@ -380,9 +373,12 @@ export function AdminUsersPage() {
                 </label>
               ))}
             </div>
+            {selectedRoles.length === 0 && (
+              <p className="mt-2 text-xs text-status-danger-foreground">Phải chọn ít nhất 1 vai trò cho người dùng.</p>
+            )}
           </fieldset>
         )}
-      </AuthAuditReasonModal>
+      </AuditReasonDialog>
     </AuthAccountShell>
   )
 }

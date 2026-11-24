@@ -1,3 +1,6 @@
 export { CartPage } from './pages/CartPage'
 export { CheckoutPage } from './pages/CheckoutPage'
 export type { CheckoutPageProps } from './pages/CheckoutPage'
+export { SellerOrdersPage } from './pages/SellerOrdersPage'
+export { SellerOrderDetailPage } from './pages/SellerOrderDetailPage'
+export type { SellerOrderDetailPageProps } from './pages/SellerOrderDetailPage'

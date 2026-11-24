@@ -1,19 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ChevronDown, ChevronUp, MapPin, Truck } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { AlertTriangle, Truck } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CopyableId, ServiceFallbackBanner } from '@/components/shared'
-import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatDateTime, formatDateTimeFull } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { ShipmentTrackingTimeline } from '@/features/payment-shipping/ShipmentTrackingTimeline'
+import { formatShipmentFailureReason, sortTrackingEvents } from '@/features/payment-shipping/tracking'
+import { formatDate } from '@/lib/format'
 import {
   apiGetSellerOrderTracking,
   type ShipmentSummary,
   type ShipmentTrackingEvent,
 } from '../api'
-import { shouldFetchShipmentTracking, sortTrackingEvents } from '../order-helpers'
+import { shouldFetchShipmentTracking } from '../order-helpers'
 
 export type ExternalTimelineRenderProps = {
   sellerOrderId: string
@@ -29,11 +30,10 @@ export type ShipmentTrackingPanelProps = {
   shippingDegraded?: boolean
   onRetryOrder?: () => void
   isOrderFetching?: boolean
+  showCancelPolicy?: boolean
   /** Hook ghép component `<ShipmentTrackingTimeline />` từ T5-08 khi sẵn sàng. */
   renderExternalTimeline?: (props: ExternalTimelineRenderProps) => ReactNode
 }
-
-const COLLAPSED_EVENT_LIMIT = 3
 
 /**
  * Khối hành trình vận chuyển cho từng gói `SellerOrder` (FR-SHP-005, NFR-REL-005).
@@ -48,15 +48,12 @@ export function ShipmentTrackingPanel({
   shippingDegraded = false,
   onRetryOrder,
   isOrderFetching = false,
+  showCancelPolicy = false,
   renderExternalTimeline,
 }: ShipmentTrackingPanelProps) {
   const { t } = useTranslation('orders')
-  const [expanded, setExpanded] = useState(false)
-
-  const shouldFetch = shouldFetchShipmentTracking(
-    { status: sellerOrderStatus, trackingCode },
-    shippingDegraded,
-  )
+  const trackable = shouldFetchShipmentTracking({ status: sellerOrderStatus, trackingCode }, false)
+  const shouldFetch = trackable && !shippingDegraded
 
   const trackingQuery = useQuery({
     queryKey: ['shipments', 'tracking', sellerOrderId],
@@ -65,146 +62,98 @@ export function ShipmentTrackingPanel({
     retry: false,
   })
 
+  if (!trackable) return null
+
   const shipment = trackingQuery.data?.shipment ?? null
   const displayCarrier = shipment?.carrier || carrier
   const displayTrackingCode = shipment?.trackingCode || trackingCode
-  const sortedEvents = sortTrackingEvents(trackingQuery.data?.events ?? [])
-  const visibleEvents =
-    expanded || sortedEvents.length <= COLLAPSED_EVENT_LIMIT
-      ? sortedEvents
-      : sortedEvents.slice(0, COLLAPSED_EVENT_LIMIT)
+  const events = sortTrackingEvents(trackingQuery.data?.events ?? [])
+  const latestEvent = events.find((event) => event.applied !== false)
+  const latestNote = latestEvent?.note?.trim()
+  const unavailable = shippingDegraded || trackingQuery.isError
+  const separateStatus = shipment?.status && shipment.status !== latestEvent?.status ? shipment.status : undefined
+  const eta = shipment?.etaAt && ['CREATED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(shipment.status)
+    ? t('detail.tracking.eta', { date: formatDate(shipment.etaAt) })
+    : undefined
+  const summary = unavailable ? t('detail.tracking.unavailableSummary')
+    : shipment?.status === 'CREATE_FAILED' ? t('detail.tracking.createFailedNotice')
+    : latestNote || eta
 
   function handleRetry() {
-    if (shippingDegraded) {
-      onRetryOrder?.()
-    }
-    if (shouldFetch) {
-      void trackingQuery.refetch()
-    }
+    if (shippingDegraded) onRetryOrder?.()
+    if (shouldFetch) void trackingQuery.refetch()
   }
 
   return (
-    <div
-      data-testid={`tracking-panel-${sellerOrderId}`}
-      className="space-y-2.5 rounded-md border border-border bg-background/70 p-3"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-foreground">
-          <Truck aria-hidden="true" className="size-4 text-primary" />
-          <span>{t('detail.tracking.title')}</span>
-          {displayCarrier && (
-            <span className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              {displayCarrier}
-            </span>
-          )}
-          {shipment?.status && <StatusBadge status={shipment.status} />}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          {displayTrackingCode && (
-            <CopyableId value={displayTrackingCode} label={t('detail.tracking.trackingCode')} />
-          )}
-          {shipment?.etaAt && (
-            <span className="tabular-nums">{t('detail.tracking.eta', { date: formatDate(shipment.etaAt) })}</span>
-          )}
-        </div>
-      </div>
-
-      {shippingDegraded || trackingQuery.isError ? (
-        <ServiceFallbackBanner
-          message={t('detail.tracking.degradedBanner')}
-          onRetry={handleRetry}
-          isRetrying={trackingQuery.isFetching || isOrderFetching}
-        />
-      ) : !shouldFetch ? (
-        <p className="text-xs text-muted-foreground">{t('detail.tracking.notCreatedYet')}</p>
-      ) : trackingQuery.isLoading ? (
-        <div className="space-y-2" aria-busy="true">
-          <Skeleton className="h-4 w-56" />
-          <Skeleton className="h-4 w-44" />
-        </div>
-      ) : shipment?.status === 'CREATE_FAILED' ? (
-        <div
-          role="status"
-          className="flex items-start gap-2 rounded-md border border-status-warning-border bg-status-warning px-3 py-2 text-xs text-status-warning-foreground"
-        >
-          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <div className="space-y-0.5">
-            <p className="font-medium">{t('detail.tracking.createFailedNotice')}</p>
-            {shipment.failureReason && <p>{shipment.failureReason}</p>}
-          </div>
-        </div>
-      ) : renderExternalTimeline ? (
-        <>{renderExternalTimeline({ sellerOrderId, shipment, events: sortedEvents })}</>
-      ) : sortedEvents.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{t('detail.tracking.noEventsYet')}</p>
-      ) : (
-        <div className="space-y-2">
-          {shipment?.deliveryAttempts !== undefined && shipment.deliveryAttempts > 0 && (
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {t('detail.tracking.deliveryAttempts', { count: shipment.deliveryAttempts })}
-            </p>
-          )}
-          <ol className="relative space-y-2.5 border-l border-border pl-4">
-            {visibleEvents.map((ev, index) => {
-              const isLatest = index === 0
-              return (
-                <li key={ev.eventId} className="relative space-y-0.5 text-xs">
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-card',
-                      isLatest ? 'bg-primary' : 'bg-muted-foreground/40',
-                    )}
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={ev.status} />
-                    <time
-                      dateTime={ev.occurredAt}
-                      title={formatDateTimeFull(ev.occurredAt)}
-                      className="text-muted-foreground tabular-nums"
-                    >
-                      {formatDateTime(ev.occurredAt)}
-                    </time>
-                  </div>
-                  {(ev.note || ev.location) && (
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-foreground">
-                      {ev.note && <span>{ev.note}</span>}
-                      {ev.location && (
-                        <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <MapPin aria-hidden="true" className="size-3 shrink-0" />
-                          {ev.location}
-                        </span>
-                      )}
-                    </p>
-                  )}
-                </li>
-              )
-            })}
-          </ol>
-
-          {sortedEvents.length > COLLAPSED_EVENT_LIMIT && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={() => setExpanded((prev) => !prev)}
-            >
-              {expanded ? (
-                <>
-                  <ChevronUp aria-hidden="true" />
-                  {t('detail.tracking.collapse')}
-                </>
-              ) : (
-                <>
-                  <ChevronDown aria-hidden="true" />
-                  {t('detail.tracking.expand', { count: sortedEvents.length })}
-                </>
+    <div data-testid={`tracking-panel-${sellerOrderId}`}>
+      <DisclosurePanel title={t('detail.tracking.title')} summary={summary} icon={<Truck />} variant="plain">
+        <div className="space-y-3">
+          {(displayCarrier || displayTrackingCode || eta || separateStatus) && (
+            <dl className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+              {separateStatus && (
+                <div>
+                  <dt className="sr-only">{t('detail.tracking.statusLabel')}</dt>
+                  <dd><StatusBadge status={separateStatus} /></dd>
+                </div>
               )}
-            </Button>
+              {displayCarrier && (
+                <div className="flex min-w-0 items-center gap-1">
+                  <dt>{t('detail.tracking.carrier')}</dt>
+                  <dd className="break-all font-medium text-foreground">{displayCarrier}</dd>
+                </div>
+              )}
+              {displayTrackingCode && (
+                <div className="flex min-w-0 items-center gap-1">
+                  <dt className="sr-only">{t('detail.tracking.trackingCode')}</dt>
+                  <dd className="min-w-0"><CopyableId value={displayTrackingCode} label={t('detail.tracking.trackingCode')} /></dd>
+                </div>
+              )}
+              {eta && <div><dt className="sr-only">{t('detail.tracking.etaLabel')}</dt><dd>{eta}</dd></div>}
+            </dl>
+          )}
+
+          {unavailable ? (
+            <ServiceFallbackBanner
+              message={t('detail.tracking.degradedBanner')}
+              onRetry={handleRetry}
+              isRetrying={trackingQuery.isFetching || isOrderFetching}
+            />
+          ) : trackingQuery.isLoading ? (
+            <div className="space-y-2" aria-busy="true">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ) : shipment?.status === 'CREATE_FAILED' ? (
+            <div
+              role="status"
+              className="flex items-start gap-2.5 rounded-md border border-status-warning-border bg-status-warning px-3 py-2.5 text-xs text-status-warning-foreground sm:text-sm"
+            >
+              <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-medium">{t('detail.tracking.createFailedNotice')}</p>
+                {formatShipmentFailureReason(shipment.failureReason) && (
+                  <p className="text-xs opacity-90">{formatShipmentFailureReason(shipment.failureReason)}</p>
+                )}
+              </div>
+            </div>
+          ) : renderExternalTimeline ? (
+            renderExternalTimeline({ sellerOrderId, shipment, events })
+          ) : !shipment ? (
+            <p className="text-sm text-muted-foreground">{t('detail.tracking.notCreatedYet')}</p>
+          ) : (
+            <ShipmentTrackingTimeline
+              events={events}
+              attempts={shipment.deliveryAttempts}
+              attemptLimit={shipment.deliveryAttemptLimit}
+              showAll
+            />
+          )}
+
+          {showCancelPolicy && (
+            <p className="text-xs leading-relaxed text-muted-foreground">{t('detail.actions.cannotCancelHint')}</p>
           )}
         </div>
-      )}
+      </DisclosurePanel>
     </div>
   )
 }

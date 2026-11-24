@@ -1,6 +1,7 @@
 import { History } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { formatDateTime } from '@/lib/format'
 import type { OrderStatusHistoryView } from '../seller-orders-api'
@@ -19,17 +20,11 @@ export function SellerOrderHistoryTimeline({ history }: SellerOrderHistoryTimeli
   )
 
   return (
-    <section
-      aria-labelledby="seller-order-history-heading"
-      className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
+    <DisclosurePanel
+      title={t('history.title')}
+      summary={t('history.count', { count: sorted.length })}
+      icon={<History />}
     >
-      <div className="border-b border-border pb-3">
-        <h2 id="seller-order-history-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <History aria-hidden="true" className="size-5 text-primary" />
-          <span>{t('history.title')}</span>
-        </h2>
-      </div>
-
       {sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('history.empty')}</p>
       ) : (
@@ -64,6 +59,6 @@ export function SellerOrderHistoryTimeline({ history }: SellerOrderHistoryTimeli
           })}
         </ol>
       )}
-    </section>
+    </DisclosurePanel>
   )
 }

@@ -6,13 +6,15 @@ import { CopyableId, ServiceFallbackBanner } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatDateTime } from '@/lib/format'
+import { ShipmentTrackingTimeline } from '@/features/payment-shipping/ShipmentTrackingTimeline'
+import { formatShipmentFailureReason } from '@/features/payment-shipping/tracking'
+import type { TrackingEvent } from '@/features/payment-shipping/api'
+import { formatDate } from '@/lib/format'
 import type { StatusTone } from '@/lib/status'
 import {
   PICKUP_ADDRESS_SETTINGS_PATH,
   canPrintShipmentLabel,
   type SellerShipmentView,
-  type ShipmentTrackingEventView,
 } from '../seller-orders-api'
 
 export type SellerShipmentSectionProps = {
@@ -28,7 +30,9 @@ export type SellerShipmentSectionProps = {
   isPrintingLabel: boolean
   onRetryShipment: (shipment: SellerShipmentView) => void
   isRetryingShipment: boolean
-  trackingEvents?: ShipmentTrackingEventView[]
+  trackingEvents?: TrackingEvent[]
+  deliveryAttempts?: number
+  deliveryAttemptLimit?: number
   isTrackingLoading?: boolean
   trackingError?: Error | null
   onRetryTracking?: () => void
@@ -76,6 +80,8 @@ export function SellerShipmentSection({
   onRetryShipment,
   isRetryingShipment,
   trackingEvents = [],
+  deliveryAttempts,
+  deliveryAttemptLimit,
   isTrackingLoading = false,
   trackingError = null,
   onRetryTracking,
@@ -174,7 +180,7 @@ export function SellerShipmentSection({
               label={resolveShipmentStatusLabel('CREATE_FAILED', t as never)}
             />
           </div>
-          <p>{shipment.failureReason || t('shipment.createFailedDefaultReason')}</p>
+          <p>{formatShipmentFailureReason(shipment.failureReason) || t('shipment.createFailedDefaultReason')}</p>
           <p className="text-xs">
             {t('shipment.carrierLabel')}: <span className="font-semibold">{shipment.carrier}</span>
           </p>
@@ -228,11 +234,6 @@ export function SellerShipmentSection({
                     {t('shipment.etaLabel')}: {formatDate(shipment.etaAt)}
                   </span>
                 )}
-                {typeof shipment.deliveryAttempts === 'number' && shipment.deliveryAttempts > 0 && (
-                  <span className="tabular-nums">
-                    {t('shipment.deliveryAttemptsLabel')}: {shipment.deliveryAttempts}
-                  </span>
-                )}
               </div>
             </div>
 
@@ -267,32 +268,8 @@ export function SellerShipmentSection({
                 message={trackingError instanceof ApiError ? trackingError.message : t('shipment.tracking.loadError')}
                 onRetry={onRetryTracking}
               />
-            ) : trackingEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{t('shipment.tracking.empty')}</p>
             ) : (
-              <ol className="space-y-2.5 border-l-2 border-border pl-4">
-                {trackingEvents.map((event, idx) => (
-                  <li
-                    key={event.eventId || event.carrierEventId || `${event.status}-${event.occurredAt}-${idx}`}
-                    className="relative text-sm"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-primary bg-card"
-                    />
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-medium text-foreground">
-                        {resolveShipmentStatusLabel(event.status, t as never)}
-                      </span>
-                      <time dateTime={event.occurredAt} className="text-xs text-muted-foreground tabular-nums">
-                        {formatDateTime(event.occurredAt)}
-                      </time>
-                    </div>
-                    {event.location && <p className="text-xs text-muted-foreground">{event.location}</p>}
-                    {event.note && <p className="text-xs text-muted-foreground">{event.note}</p>}
-                  </li>
-                ))}
-              </ol>
+              <ShipmentTrackingTimeline events={trackingEvents} attempts={deliveryAttempts} attemptLimit={deliveryAttemptLimit} />
             )}
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
   SellerOrdersPage,
 } from '@/features/cart-checkout-order'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { CheckoutResultPage } from '@/features/payment-shipping/CheckoutResultPage'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
 import { SellerLayout } from '@/layouts/SellerLayout'
@@ -116,7 +117,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: 'cart', element: <CartPage /> },
               { path: 'checkout', element: <CheckoutPage /> },
-              { path: 'checkout/result', element: soon('pages.checkoutResult', 'T5-08') },
+              { path: 'checkout/result', element: <CheckoutResultPage /> },
               { path: 'account/orders', element: <BuyerOrdersPage /> },
               { path: 'account/orders/:id', element: <BuyerOrderDetailPage /> },
               { path: 'account/reviews', element: soon('pages.reviews', 'T2-11') },

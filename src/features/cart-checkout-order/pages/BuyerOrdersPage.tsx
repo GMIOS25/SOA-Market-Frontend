@@ -7,15 +7,18 @@ import {
   MapPin,
   Package,
   RefreshCw,
+  Search,
   ShoppingBag,
   User,
+  X,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError } from '@/api/errors'
 import { CopyableId, ServiceFallbackBanner, SlaCountdownPill } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { formatDateTime, formatVnd } from '@/lib/format'
@@ -37,6 +40,21 @@ import {
 } from '../order-helpers'
 
 const PAGE_LIMIT = 10
+const PACKAGE_PREVIEW_COUNT = 2
+
+function buildPageNumbers(current: number, totalPages: number): (number | 'ellipsis')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+  const pages: (number | 'ellipsis')[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(totalPages - 1, current + 1)
+  if (start > 2) pages.push('ellipsis')
+  for (let p = start; p <= end; p += 1) pages.push(p)
+  if (end < totalPages - 1) pages.push('ellipsis')
+  pages.push(totalPages)
+  return pages
+}
 
 function navPillClass(active: boolean) {
   return cn(
@@ -91,6 +109,9 @@ export function BuyerOrdersPage() {
   const parsedPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
   const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1
 
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [jumpPageInput, setJumpPageInput] = useState('')
+
   const dateRange = useMemo(
     () => toDateRangeQuery(timePreset, customFrom, customTo),
     [timePreset, customFrom, customTo],
@@ -113,11 +134,11 @@ export function BuyerOrdersPage() {
     enabled: !dateRange.invalidRange,
   })
 
-  const orders = useMemo(() => ordersQuery.data?.items ?? [], [ordersQuery.data])
+  const rawOrders = useMemo(() => ordersQuery.data?.items ?? [], [ordersQuery.data])
   const total = ordersQuery.data?.total ?? 0
   const totalPages = Math.max(1, ordersQuery.data?.totalPages ?? 1)
 
-  const shopIds = useMemo(() => getOrderSellerIds(orders), [orders])
+  const shopIds = useMemo(() => getOrderSellerIds(rawOrders), [rawOrders])
   const shopQueries = useQueries({
     queries: shopIds.map((shopId) => ({
       queryKey: ['shop', 'public', shopId],
@@ -135,6 +156,18 @@ export function BuyerOrdersPage() {
     })
     return map
   }, [shopIds, shopQueries])
+
+  const normalizedKeyword = searchKeyword.trim().toLowerCase()
+  const orders = useMemo(() => {
+    if (!normalizedKeyword) return rawOrders
+    return rawOrders.filter((order) => {
+      if (order.orderCode.toLowerCase().includes(normalizedKeyword)) return true
+      return (order.sellerOrders ?? []).some((so) => {
+        const shopName = (shopNameMap.get(so.shopId) ?? fallbackShopName(so.shopId)).toLowerCase()
+        return shopName.includes(normalizedKeyword)
+      })
+    })
+  }, [rawOrders, normalizedKeyword, shopNameMap])
 
   function updateParams(mutate: (next: URLSearchParams) => void) {
     const next = new URLSearchParams(searchParams)
@@ -177,17 +210,36 @@ export function BuyerOrdersPage() {
   }
 
   function handleClearFilters() {
+    setSearchKeyword('')
     setSearchParams(new URLSearchParams())
   }
 
-  function handlePageChange(nextPage: number) {
-    updateParams((next) => {
-      if (nextPage <= 1) next.delete('page')
-      else next.set('page', String(nextPage))
-    })
+  function handleJumpPageSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const target = Number.parseInt(jumpPageInput, 10)
+    if (Number.isFinite(target) && target >= 1) {
+      handlePageChange(target)
+      setJumpPageInput('')
+    }
   }
 
-  const hasFilters = status !== 'ALL' || timePreset !== 'ALL' || Boolean(customFrom) || Boolean(customTo)
+  function handlePageChange(nextPage: number) {
+    const clamped = Math.min(Math.max(1, nextPage), totalPages)
+    updateParams((next) => {
+      if (clamped <= 1) next.delete('page')
+      else next.set('page', String(clamped))
+    })
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const hasFilters =
+    status !== 'ALL' ||
+    timePreset !== 'ALL' ||
+    Boolean(customFrom) ||
+    Boolean(customTo) ||
+    Boolean(normalizedKeyword)
 
   return (
     <div className="space-y-6">
@@ -225,9 +277,34 @@ export function BuyerOrdersPage() {
         onClearFilters={handleClearFilters}
       />
 
-      {!dateRange.invalidRange && ordersQuery.isLoading ? (
+      <div className="relative max-w-md">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <input
+          type="search"
+          value={searchKeyword}
+          onChange={(event) => setSearchKeyword(event.target.value)}
+          placeholder={t('list.searchPlaceholder')}
+          aria-label={t('list.searchPlaceholder')}
+          className="h-9 w-full rounded-md border border-input bg-card pr-8 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        />
+        {searchKeyword && (
+          <button
+            type="button"
+            aria-label={t('list.clearSearch')}
+            onClick={() => setSearchKeyword('')}
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X aria-hidden="true" className="size-3.5" />
+          </button>
+        )}
+      </div>
+
+      {dateRange.invalidRange ? null : ordersQuery.isLoading ? (
         <OrdersListSkeleton />
-      ) : !dateRange.invalidRange && ordersQuery.isError ? (
+      ) : ordersQuery.isError ? (
         ordersQuery.error instanceof ApiError && ordersQuery.error.isServiceUnavailable ? (
           <ServiceFallbackBanner
             message={ordersQuery.error.message || t('list.loadError')}
@@ -271,14 +348,39 @@ export function BuyerOrdersPage() {
           {orders.map((order) => {
             const sellerOrders = order.sellerOrders ?? []
             const packageCount = order.sellerOrderCount || sellerOrders.length
+            const packageRows = sellerOrders.map((so) => (
+              <li
+                key={so.sellerOrderId}
+                className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+              >
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="font-medium text-foreground">
+                    {shopNameMap.get(so.shopId) ?? fallbackShopName(so.shopId)}
+                  </span>
+                  <StatusBadge status={so.status} />
+                  {so.refundStatus && so.refundStatus !== 'NONE' && (
+                    <StatusBadge
+                      status={so.refundStatus === 'FULL' ? 'SUCCEEDED' : 'PROCESSING'}
+                      tone={so.refundStatus === 'FULL' ? 'success' : 'warning'}
+                      label={
+                        so.refundStatus === 'FULL' ? t('list.refundedTag') : t('list.refundingTag')
+                      }
+                    />
+                  )}
+                </div>
+                <span className="font-medium text-foreground tabular-nums">
+                  {formatVnd(so.totalAmount)}
+                </span>
+              </li>
+            ))
 
             return (
               <article
                 key={order.orderId}
                 data-testid={`order-card-${order.orderId}`}
-                className="overflow-hidden rounded-lg border border-border bg-card shadow-xs"
+                className="overflow-hidden rounded-lg border border-border bg-card shadow-xs transition-all hover:border-primary/40 hover:shadow-sm"
               >
-                <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+                <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <CopyableId
                       value={order.orderCode}
@@ -308,54 +410,29 @@ export function BuyerOrdersPage() {
                 </header>
 
                 <ul className="divide-y divide-border px-4 sm:px-5">
-                  {sellerOrders.map((so) => (
-                    <li
-                      key={so.sellerOrderId}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
-                    >
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="font-medium text-foreground">
-                          {shopNameMap.get(so.shopId) ?? fallbackShopName(so.shopId)}
-                        </span>
-                        <span className="font-mono text-xs text-muted-foreground">{so.sellerOrderCode}</span>
-                        <StatusBadge status={so.status} />
-                        {so.refundStatus && so.refundStatus !== 'NONE' && (
-                          <StatusBadge
-                            status={so.refundStatus === 'FULL' ? 'SUCCEEDED' : 'PROCESSING'}
-                            tone={so.refundStatus === 'FULL' ? 'success' : 'warning'}
-                            label={
-                              so.refundStatus === 'FULL' ? t('list.refundedTag') : t('list.refundingTag')
-                            }
-                          />
-                        )}
-                      </div>
-                      <span className="font-medium text-foreground tabular-nums">
-                        {formatVnd(so.totalAmount)}
-                      </span>
-                    </li>
-                  ))}
+                  {packageRows.slice(0, PACKAGE_PREVIEW_COUNT)}
                 </ul>
+                {packageRows.length > PACKAGE_PREVIEW_COUNT && (
+                  <DisclosurePanel
+                    title={t('list.morePackages', { count: packageRows.length - PACKAGE_PREVIEW_COUNT })}
+                    className="mx-4 mb-3 sm:mx-5"
+                  >
+                    <ul className="max-h-60 divide-y divide-border overflow-y-auto pr-1">
+                      {packageRows.slice(PACKAGE_PREVIEW_COUNT)}
+                    </ul>
+                  </DisclosurePanel>
+                )}
 
                 <footer className="flex flex-col gap-3 border-t border-border bg-background/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
-                    <span>
-                      {t('list.itemsTotal')}:{' '}
-                      <strong className="font-medium text-foreground">{formatVnd(order.itemsTotal)}</strong>
-                    </span>
-                    <span>
-                      {t('list.shippingTotal')}:{' '}
-                      <strong className="font-medium text-foreground">{formatVnd(order.shippingTotal)}</strong>
-                    </span>
-                    <span className="text-sm">
-                      {t('list.grandTotal')}:{' '}
-                      <strong className="text-base font-bold text-price">{formatVnd(order.grandTotal)}</strong>
-                    </span>
-                  </div>
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground">
+                    {t('list.grandTotal')}
+                    <strong className="text-lg font-bold text-price tabular-nums">{formatVnd(order.grandTotal)}</strong>
+                  </p>
 
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                     {order.status === 'PENDING_PAYMENT' && (
                       <Button asChild variant="cta" size="sm">
-                        <Link to={`/account/orders/${order.orderId}`}>
+                        <Link to={`/checkout/result?orderId=${encodeURIComponent(order.orderId)}`}>
                           <CreditCard aria-hidden="true" />
                           {t('list.payNow')}
                         </Link>
@@ -370,35 +447,84 @@ export function BuyerOrdersPage() {
             )
           })}
 
-          {totalPages > 1 && (
+          {total > 0 && (
             <nav
               aria-label={t('list.pagination', { page, totalPages, total })}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm"
+              className="flex flex-col items-center justify-between gap-3 pt-2 text-sm sm:flex-row"
             >
               <span className="text-xs text-muted-foreground tabular-nums">
-                {t('list.pagination', { page, totalPages, total })}
+                {t('list.showingRange', {
+                  from: (page - 1) * PAGE_LIMIT + 1,
+                  to: Math.min(page * PAGE_LIMIT, total),
+                  total,
+                })}
               </span>
+
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1 || ordersQuery.isFetching}
-                  onClick={() => handlePageChange(page - 1)}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                  {t('list.prevPage')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages || ordersQuery.isFetching}
-                  onClick={() => handlePageChange(page + 1)}
-                >
-                  {t('list.nextPage')}
-                  <ChevronRight aria-hidden="true" />
-                </Button>
+                <div className="inline-flex items-center gap-1 tabular-nums">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.prevPage')}
+                    disabled={page <= 1 || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+
+                  {buildPageNumbers(page, totalPages).map((item, idx) =>
+                    item === 'ellipsis' ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        aria-hidden="true"
+                        className="px-1.5 text-xs text-muted-foreground select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        size="sm"
+                        variant={item === page ? 'default' : 'ghost'}
+                        aria-current={item === page ? 'page' : undefined}
+                        disabled={ordersQuery.isFetching}
+                        onClick={() => handlePageChange(item)}
+                        className="size-8 p-0"
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.nextPage')}
+                    disabled={page >= totalPages || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleJumpPageSubmit} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <label htmlFor="orders-jump-page">{t('list.jumpToPage')}</label>
+                  <input
+                    id="orders-jump-page"
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={jumpPageInput}
+                    onChange={(event) => setJumpPageInput(event.target.value)}
+                    placeholder={String(page)}
+                    className="h-8 w-14 rounded-md border border-input bg-card px-2 text-center text-xs text-foreground tabular-nums focus-visible:outline-2 focus-visible:outline-ring"
+                  />
+                </form>
               </div>
             </nav>
           )}

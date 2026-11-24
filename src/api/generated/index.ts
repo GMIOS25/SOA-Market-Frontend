@@ -5,4 +5,6 @@
 export type * as SvcCpl from './svc-cpl'
 export type * as SvcIdn from './svc-idn'
 export type * as SvcOrd from './svc-ord'
+export type * as SvcPay from './svc-pay'
 export type * as SvcSel from './svc-sel'
+export type * as SvcShp from './svc-shp'

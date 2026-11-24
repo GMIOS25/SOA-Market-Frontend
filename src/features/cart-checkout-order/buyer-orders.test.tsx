@@ -15,6 +15,7 @@ vi.mock('@/lib/env', () => ({
 import '@/lib/dayjs'
 import '@/lib/i18n'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { sortTrackingEvents } from '@/features/payment-shipping/tracking'
 import { clearAuthSession, setAuthSession } from '@/lib/auth/session'
 import type {
   BuyerOrderDetailView,
@@ -26,7 +27,6 @@ import {
   canBuyerCancelPackage,
   canBuyerConfirmReceipt,
   mapPartialRefundLines,
-  sortTrackingEvents,
   toDateRangeQuery,
 } from './order-helpers'
 import { BuyerOrderDetailPage, type BuyerOrderDetailPageProps } from './pages/BuyerOrderDetailPage'
@@ -472,7 +472,11 @@ describe('T4-07: Buyer Orders List (/account/orders)', () => {
     expect(await screen.findByText('ORD-20261124-001')).toBeTruthy()
     expect(screen.getByText('Shop Điện Tử A')).toBeTruthy()
     expect(screen.getByText('Shop Thời Trang B')).toBeTruthy()
-    expect(screen.getByText('Shop Gia Dụng C')).toBeTruthy()
+    const morePackages = screen.getByRole('button', { name: 'Xem thêm 1 gói hàng' })
+    expect(morePackages.getAttribute('aria-expanded')).toBe('false')
+    await user.click(morePackages)
+    expect(morePackages.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByText('Shop Gia Dụng C').closest('[hidden]')).toBeNull()
     expect(screen.getByText(/975\.000/)).toBeTruthy()
 
     // Filter by status: Đã thanh toán
@@ -482,6 +486,7 @@ describe('T4-07: Buyer Orders List (/account/orders)', () => {
     })
 
     // Filter by time preset: 7 ngày qua
+    await user.click(screen.getByRole('button', { name: 'Khoảng thời gian' }))
     await user.click(screen.getByRole('button', { name: '7 ngày qua' }))
     await waitFor(() => {
       expect(recordedUrls.some((u) => u.includes('status=PAID') && u.includes('from=') && u.includes('to='))).toBe(true)
@@ -510,6 +515,7 @@ describe('T4-07: Buyer Orders List (/account/orders)', () => {
 
 describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
   it('displays 3 <ShopPackageCard />s, immutable snapshot prices (TC-ORD-13), and <PartialRefundBreakdown />', async () => {
+    const user = userEvent.setup()
     const requestedPaths: string[] = []
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -524,7 +530,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
         const soId = parsed.searchParams.get('sellerOrderId')
         if (soId === SO_1_ID) {
           return jsonResponse({
-            items: [
+            shipments: [
               {
                 shipmentId: SHP_1_ID,
                 sellerOrderId: SO_1_ID,
@@ -536,7 +542,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
             ],
           })
         }
-        return jsonResponse({ items: [] })
+        return jsonResponse({ shipments: [] })
       }
       if (parsed.pathname === `/v1/shipments/${SHP_1_ID}/tracking`) {
         return jsonResponse({
@@ -569,14 +575,30 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
     // TC-ORD-13: immutable snapshot prices rendered without querying SVC-PRD products API
     expect(screen.getByText('Tai nghe ANC Snapshot 2026')).toBeTruthy()
     expect(screen.getByText('Áo khoác gió Snapshot')).toBeTruthy()
-    expect(screen.getByText(/1 × 400\.000/)).toBeTruthy()
+    const firstPackage = screen.getByRole('article', { name: /Shop Điện Tử A/ })
+    expect(within(firstPackage).getByText('400.000 ₫')).toBeTruthy()
+    expect(within(firstPackage).getByText('Số lượng 1')).toBeTruthy()
     expect(screen.getByText(/2 × 150\.000/)).toBeTruthy()
     expect(requestedPaths.some((p) => p.startsWith('/v1/products'))).toBe(false)
 
-    // PartialRefundBreakdown rendered with exact paid total, refunded line, and remaining total
-    expect(screen.getByText('Đối chiếu hoàn tiền')).toBeTruthy()
+    const refundDetails = screen.getByRole('button', { name: /Chi tiết hoàn tiền/ })
+    expect(screen.queryByRole('region', { name: 'Đối chiếu hoàn tiền' })).toBeNull()
+    await user.click(refundDetails)
+    expect(screen.getByRole('region', { name: 'Đối chiếu hoàn tiền' })).toBeTruthy()
     expect(screen.getByText(/Hoàn tiền — Gói SO-003 \(Shop Gia Dụng C\)/)).toBeTruthy()
     expect(screen.getByText(/750\.000/)).toBeTruthy()
+    expect(await screen.findByText('Giao hàng thành công')).toBeTruthy()
+    const tracking = within(firstPackage).getByRole('button', { name: 'Hành trình vận chuyển' })
+    const firstProduct = within(firstPackage).getByRole('link', { name: 'Tai nghe ANC Snapshot 2026' })
+    expect(firstProduct.compareDocumentPosition(tracking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(tracking.getAttribute('aria-expanded')).toBe('false')
+    expect(within(firstPackage).queryByText('Shipper đã lấy hàng')).toBeNull()
+    expect(within(firstPackage).queryByText('GHN-TRK-001')).toBeNull()
+    await user.click(tracking)
+    expect(within(firstPackage).getByText('Shipper đã lấy hàng')).toBeTruthy()
+    expect(within(firstPackage).getByText('GHN-TRK-001')).toBeTruthy()
+    await user.click(within(firstPackage).getByRole('button', { name: 'Tổng gói hàng' }))
+    expect(within(firstPackage).getByText('Phí vận chuyển')).toBeTruthy()
   })
 
   it('cancels eligible package, confirms receipt for delivered package, and locks receipt when complaint is open', async () => {
@@ -650,7 +672,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
       }
 
       if (parsed.pathname === '/v1/shipments') {
-        return jsonResponse({ items: [] })
+        return jsonResponse({ shipments: [] })
       }
       return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
     })
@@ -703,7 +725,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
         return jsonResponse(orderWithComplaint)
       }
       if (parsed.pathname === '/v1/shipments') {
-        return jsonResponse({ items: [] })
+        return jsonResponse({ shipments: [] })
       }
       return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
     })
@@ -733,7 +755,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
         const soId = parsed.searchParams.get('sellerOrderId')
         if (soId === SO_1_ID) {
           return jsonResponse({
-            items: [
+            shipments: [
               {
                 shipmentId: SHP_1_ID,
                 sellerOrderId: SO_1_ID,
@@ -745,7 +767,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
             ],
           })
         }
-        return jsonResponse({ items: [] })
+        return jsonResponse({ shipments: [] })
       }
 
       if (parsed.pathname === `/v1/shipments/${SHP_1_ID}/tracking`) {
@@ -775,21 +797,24 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
     // Order details, snapshot items, refund breakdown, and actions still render cleanly
     expect(await screen.findByText('ORD-20261124-001')).toBeTruthy()
     expect(screen.getByText('Tai nghe ANC Snapshot 2026')).toBeTruthy()
-    expect(screen.getByText('Đối chiếu hoàn tiền')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Chi tiết hoàn tiền' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Đã nhận hàng' })).toBeTruthy()
 
-    // Fallback banner appears inside tracking block
-    expect(await screen.findByText(/Tạm thời không thể tải hành trình vận chuyển/)).toBeTruthy()
+    // The compact status stays visible while the retry action lives in tracking details.
+    const trackingPanel = within(screen.getByTestId(`tracking-panel-${SO_1_ID}`))
+    expect(await trackingPanel.findByText('Chưa cập nhật được hành trình')).toBeTruthy()
+    await user.click(trackingPanel.getByRole('button', { name: 'Hành trình vận chuyển' }))
+    expect(await trackingPanel.findByText(/Tạm thời không thể tải hành trình vận chuyển/)).toBeTruthy()
 
     // Recover SVC-SHP and retry tracking block only
     shpDown = false
-    const retryButtons = screen.getAllByRole('button', { name: 'Thử tải lại khối này' })
-    await user.click(retryButtons[0]!)
+    await user.click(trackingPanel.getByRole('button', { name: 'Thử tải lại khối này' }))
 
-    expect(await screen.findByText('Đã giao cho người nhận')).toBeTruthy()
+    expect((await trackingPanel.findAllByText('Đã giao cho người nhận')).length).toBeGreaterThan(0)
   })
 
   it('supports external <ShipmentTrackingTimeline /> hook via renderExternalTimeline prop', async () => {
+    const user = userEvent.setup()
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = input instanceof Request ? input.url : String(input)
       const parsed = new URL(url)
@@ -800,7 +825,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
         const soId = parsed.searchParams.get('sellerOrderId')
         if (soId === SO_1_ID) {
           return jsonResponse({
-            items: [
+            shipments: [
               {
                 shipmentId: SHP_1_ID,
                 sellerOrderId: SO_1_ID,
@@ -812,7 +837,7 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
             ],
           })
         }
-        return jsonResponse({ items: [] })
+        return jsonResponse({ shipments: [] })
       }
       if (parsed.pathname === `/v1/shipments/${SHP_1_ID}/tracking`) {
         return jsonResponse({
@@ -832,7 +857,9 @@ describe('T4-07: Buyer Order Detail (/account/orders/:id)', () => {
       ),
     })
 
-    expect(await screen.findByTestId(`external-timeline-${SO_1_ID}`)).toBeTruthy()
+    const trackingPanel = within(await screen.findByTestId(`tracking-panel-${SO_1_ID}`))
+    await user.click(trackingPanel.getByRole('button', { name: 'Hành trình vận chuyển' }))
+    expect(await trackingPanel.findByTestId(`external-timeline-${SO_1_ID}`)).toBeTruthy()
     expect(screen.getByText('External timeline (1)')).toBeTruthy()
   })
 })

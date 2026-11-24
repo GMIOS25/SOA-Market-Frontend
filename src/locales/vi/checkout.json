@@ -56,6 +56,7 @@
     "address": {
       "sectionTitle": "Địa chỉ giao hàng",
       "addNew": "Thêm địa chỉ mới",
+      "chooseOther": "Đổi địa chỉ",
       "emptyTitle": "Bạn chưa có địa chỉ giao hàng nào",
       "emptyDescription": "Thêm địa chỉ nhận hàng ngay tại đây để tính phí vận chuyển cho từng nhà bán.",
       "emptyAction": "Thêm địa chỉ giao hàng",

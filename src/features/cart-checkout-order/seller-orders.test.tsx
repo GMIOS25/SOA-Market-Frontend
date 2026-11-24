@@ -141,7 +141,6 @@ function makeShipment(overrides: Partial<SellerShipmentView> = {}): SellerShipme
     trackingCode: 'GHN-TRACK-8899',
     status: 'CREATED',
     etaAt: '2026-11-27T00:00:00Z',
-    labelUrl: 'https://shipping.mock.local/labels/GHN-TRACK-8899.pdf',
     ...overrides,
   }
 }
@@ -395,7 +394,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
       if (req.url.includes(`/v1/shipments?sellerOrderId=${SO_1_ID}`) && req.method === 'GET') {
         return jsonResponse({ shipments: [makeShipment()] })
       }
-      if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/tracking`)) {
+      if (new URL(req.url).pathname === `/v1/shipments/${SHIPMENT_1_ID}/tracking`) {
         return jsonResponse({ events: [] })
       }
       return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
@@ -533,7 +532,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
       if (req.url.includes(`/v1/shipments?sellerOrderId=${SO_1_ID}`)) {
         return jsonResponse({ shipments: [makeShipment({ status: 'CREATED' })] })
       }
-      if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/tracking`)) {
+      if (new URL(req.url).pathname === `/v1/shipments/${SHIPMENT_1_ID}/tracking`) {
         return jsonResponse({ events: [] })
       }
       if (req.url.endsWith(`/v1/seller-orders/${SO_1_ID}/cancel`) && req.method === 'POST') {
@@ -588,7 +587,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
       if (req.url.includes(`/v1/shipments?sellerOrderId=${SO_1_ID}`)) {
         return jsonResponse({ shipments: [makeShipment({ status: 'PICKED_UP' })] })
       }
-      if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/tracking`)) {
+      if (new URL(req.url).pathname === `/v1/shipments/${SHIPMENT_1_ID}/tracking`) {
         return jsonResponse({ events: [] })
       }
       return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
@@ -617,7 +616,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
       if (req.url.includes(`/v1/shipments?sellerOrderId=${SO_1_ID}`)) {
         return jsonResponse({ shipments: [makeShipment({ status: 'CREATED' })] })
       }
-      if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/tracking`)) {
+      if (new URL(req.url).pathname === `/v1/shipments/${SHIPMENT_1_ID}/tracking`) {
         return jsonResponse({ events: [] })
       }
       if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/label`) && req.method === 'GET') {
@@ -632,8 +631,8 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
 
     renderSellerRoute(`/seller/orders/${SO_1_ID}`, { onOpenLabel })
 
-    const printButtons = await screen.findAllByRole('button', { name: 'In nhãn vận chuyển' })
-    await user.click(printButtons[0]!)
+    const printButton = await screen.findByRole('button', { name: 'In nhãn vận chuyển' })
+    await user.click(printButton)
 
     await waitFor(() =>
       expect(onOpenLabel).toHaveBeenCalledWith('https://shipping.mock.local/labels/GHN-TRACK-8899.pdf'),
@@ -662,7 +661,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
       if (req.url.includes(`/v1/shipments?sellerOrderId=${SO_1_ID}`)) {
         return jsonResponse({ shipments: [currentShipment] })
       }
-      if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/tracking`)) {
+      if (new URL(req.url).pathname === `/v1/shipments/${SHIPMENT_1_ID}/tracking`) {
         return jsonResponse({ events: [] })
       }
       if (req.url.endsWith(`/v1/shipments/${SHIPMENT_1_ID}/retry`) && req.method === 'POST') {
@@ -706,7 +705,7 @@ describe('T4-08: Seller Order Detail (/seller/orders/:id)', () => {
     // Second attempt succeeds -> transitions to CREATED and reveals tracking code + Print Label.
     await user.click(screen.getAllByRole('button', { name: 'Tạo lại vận đơn' })[0]!)
     expect(await screen.findByText('GHN-RETRY-777')).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: 'In nhãn vận chuyển' }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'In nhãn vận chuyển' })).toBeTruthy()
   })
 
   it('degrades gracefully with ServiceFallbackBanner when SVC-SHP fails', async () => {

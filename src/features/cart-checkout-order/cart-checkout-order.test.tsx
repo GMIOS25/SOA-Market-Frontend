@@ -472,6 +472,34 @@ describe('T4-06: Multi-Seller Cart (/cart)', () => {
 })
 
 describe('T4-06: Checkout (/checkout) & <= 3 Screens Flow', () => {
+  it('summarizes the selected address and requotes when switching to a saved address', async () => {
+    const user = userEvent.setup()
+    const quotedAddressIds: string[] = []
+    const alternate = makeDefaultAddress({ addressId: ADDR_2_ID, receiver: 'Nguyễn Thanh Lan', isDefault: false })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const request = input as Request
+      const { pathname } = new URL(request.url)
+      if (pathname === '/v1/users/me/addresses') {
+        return jsonResponse({ data: [makeDefaultAddress(), alternate] })
+      }
+      if (pathname === '/v1/checkout/summary') {
+        const { addressId } = await request.clone().json() as { addressId: string }
+        quotedAddressIds.push(addressId)
+        return jsonResponse(makeCheckoutSummary())
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Unhandled' }, 404)
+    })
+
+    renderFeature('/checkout')
+    const changeAddress = await screen.findByRole('button', { name: 'Đổi địa chỉ' })
+    expect(changeAddress.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('radio', { name: /Nguyễn Thanh Lan/ })).toBeNull()
+    await waitFor(() => expect(quotedAddressIds).toContain(ADDR_1_ID))
+    await user.click(changeAddress)
+    await user.click(screen.getByRole('radio', { name: /Nguyễn Thanh Lan/ }))
+    await waitFor(() => expect(quotedAddressIds.at(-1)).toBe(ADDR_2_ID))
+  })
+
   it('supports inline Add Address Modal on /checkout and recalculates per-shop shipping fees', async () => {
     const createdAddr = makeDefaultAddress({
       addressId: ADDR_2_ID,

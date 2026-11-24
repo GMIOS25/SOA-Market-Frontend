@@ -14,6 +14,7 @@ import { Link } from 'react-router'
 import { ApiError } from '@/api/errors'
 import { CopyableId, ServiceFallbackBanner, SlaCountdownPill } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -186,7 +187,7 @@ export function SellerOrdersPage() {
         aria-label={t('list.filters.statusGroupLabel')}
         className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs"
       >
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('list.filters.statusGroupLabel')}>
+        <div className="flex gap-1.5 overflow-x-auto p-1 [scrollbar-width:thin] sm:flex-wrap" role="group" aria-label={t('list.filters.statusGroupLabel')}>
           {STATUS_TABS.map((tab) => {
             const active = statusTab === tab
             return (
@@ -199,7 +200,7 @@ export function SellerOrdersPage() {
                   setPage(1)
                 }}
                 className={cn(
-                  'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                  'inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                   active
                     ? 'border-primary bg-primary-soft text-primary'
                     : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -211,43 +212,49 @@ export function SellerOrdersPage() {
           })}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="seller-orders-from" className="text-xs">
-                {t('list.filters.fromDate')}
-              </Label>
-              <input
-                id="seller-orders-from"
-                type="date"
-                value={fromDate}
-                onChange={(e) => {
-                  setFromDate(e.target.value)
-                  setPage(1)
-                }}
-                className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
+        <div className="flex flex-wrap items-start gap-2">
+          <DisclosurePanel
+            title={t('list.filters.dateRange')}
+            summary={fromDate || toDate ? t('list.filters.dateRangeActive') : undefined}
+            initiallyOpen={Boolean(fromDate || toDate)}
+            className="max-w-full flex-1"
+          >
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="seller-orders-from" className="text-xs">
+                  {t('list.filters.fromDate')}
+                </Label>
+                <input
+                  id="seller-orders-from"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => {
+                    setFromDate(e.target.value)
+                    setPage(1)
+                  }}
+                  className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="seller-orders-to" className="text-xs">
-                {t('list.filters.toDate')}
-              </Label>
-              <input
-                id="seller-orders-to"
-                type="date"
-                value={toDate}
-                onChange={(e) => {
-                  setToDate(e.target.value)
-                  setPage(1)
-                }}
-                className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-              />
+              <div className="space-y-1">
+                <Label htmlFor="seller-orders-to" className="text-xs">
+                  {t('list.filters.toDate')}
+                </Label>
+                <input
+                  id="seller-orders-to"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => {
+                    setToDate(e.target.value)
+                    setPage(1)
+                  }}
+                  className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
             </div>
-          </div>
-
+          </DisclosurePanel>
           {hasActiveFilters && (
-            <Button type="button" variant="outline" size="sm" onClick={handleClearFilters}>
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearFilters}>
               {t('list.filters.clearFilters')}
             </Button>
           )}

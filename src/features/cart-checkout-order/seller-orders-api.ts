@@ -1,7 +1,12 @@
-import { authFetch } from '@/api/auth-fetch'
-import { ApiError, networkError, toApiError, unwrap } from '@/api/errors'
+import { ApiError, unwrap } from '@/api/errors'
 import type { SvcOrd, SvcSel } from '@/api/generated'
-import { env } from '@/lib/env'
+import {
+  getShipmentLabel,
+  listShipments,
+  retryShipment,
+  type Shipment,
+  type ShipmentLabel,
+} from '@/features/payment-shipping/api'
 import { ordClient, selClient } from './api'
 
 export type SellerOrderSummaryView = SvcOrd.components['schemas']['SellerOrderSummaryView']
@@ -24,60 +29,13 @@ export type SellerOrderListParams = {
   limit?: number
 }
 
-export type SellerShipmentStatus =
-  | 'PENDING_CREATION'
-  | 'CREATE_FAILED'
-  | 'CREATED'
-  | 'PICKED_UP'
-  | 'IN_TRANSIT'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'RETURNING'
-  | 'RETURNED'
-  | 'CANCELLED'
-  | (string & {})
+export type SellerShipmentView = Pick<Shipment, 'shipmentId' | 'sellerOrderId' | 'carrier' | 'status'> &
+  Partial<Omit<Shipment, 'shipmentId' | 'sellerOrderId' | 'carrier' | 'status' | 'failureReason'>> & {
+    failureReason?: string | null
+    deliveryAttempts?: number
+  }
 
-/**
- * Hợp đồng SVC-SHP (02-TRD.md §B.6, 05-Backend-Schema.md §3.6) cho tới khi `svc-shp.yaml`
- * được đồng bộ vào `src/api/generated/`.
- */
-export type SellerShipmentView = {
-  shipmentId: string
-  sellerOrderId: string
-  shopId?: string
-  buyerId?: string
-  kind?: string
-  carrier: string
-  trackingCode?: string | null
-  status: SellerShipmentStatus
-  fee?: number
-  feeVnd?: number
-  etaAt?: string | null
-  labelUrl?: string | null
-  failureReason?: string | null
-  deliveryAttempts?: number
-  createAttempts?: number
-  createdAt?: string
-  updatedAt?: string
-}
-
-export type ShipmentTrackingEventView = {
-  eventId?: string
-  carrierEventId?: string
-  carrier?: string
-  status: string
-  note?: string | null
-  location?: string | null
-  occurredAt: string
-  receivedAt?: string
-}
-
-export type ShipmentLabelResult = {
-  trackingCode?: string
-  labelUrl?: string
-  expiresAt?: string
-  htmlContent?: string
-}
+export type ShipmentLabelResult = ShipmentLabel
 
 export const PICKUP_ADDRESS_SETTINGS_PATH = '/seller/shop'
 
@@ -168,58 +126,12 @@ export function isPickupAddressMissingError(
   return /lấy hàng|pickup/i.test(error.message)
 }
 
-async function fetchGatewayJson<T>(path: string, init: RequestInit = {}): Promise<T> {
-  let response: Response
-  try {
-    response = await authFetch(new Request(`${env.apiBaseUrl}${path}`, init))
-  } catch {
-    throw networkError()
-  }
-
-  const body = (await response.json().catch(() => null)) as unknown
-  if (!response.ok) {
-    throw toApiError(body, response)
-  }
-  return body as T
-}
-
-function normalizeShipmentsPayload(payload: unknown): SellerShipmentView[] {
-  if (Array.isArray(payload)) return payload as SellerShipmentView[]
-  if (typeof payload !== 'object' || payload === null) return []
-  const record = payload as Record<string, unknown>
-  if (Array.isArray(record.shipments)) return record.shipments as SellerShipmentView[]
-  if (Array.isArray(record.items)) return record.items as SellerShipmentView[]
-  if (Array.isArray(record.data)) return record.data as SellerShipmentView[]
-  if (typeof record.shipmentId === 'string') return [record as unknown as SellerShipmentView]
-  return []
-}
-
-function normalizeTrackingPayload(payload: unknown): ShipmentTrackingEventView[] {
-  let list: ShipmentTrackingEventView[] = []
-  if (Array.isArray(payload)) {
-    list = payload as ShipmentTrackingEventView[]
-  } else if (typeof payload === 'object' && payload !== null) {
-    const record = payload as Record<string, unknown>
-    if (Array.isArray(record.events)) list = record.events as ShipmentTrackingEventView[]
-    else if (Array.isArray(record.trackingEvents)) list = record.trackingEvents as ShipmentTrackingEventView[]
-    else if (Array.isArray(record.items)) list = record.items as ShipmentTrackingEventView[]
-    else if (Array.isArray(record.data)) list = record.data as ShipmentTrackingEventView[]
-  }
-  return [...list].sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
-}
-
 export async function apiListShipmentsBySellerOrder(sellerOrderId: string): Promise<SellerShipmentView[]> {
   try {
-    const payload = await fetchGatewayJson<unknown>(
-      `/v1/shipments?sellerOrderId=${encodeURIComponent(sellerOrderId)}`,
-      { method: 'GET' },
-    )
-    return normalizeShipmentsPayload(payload)
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      return []
-    }
-    throw err
+    return await listShipments(sellerOrderId, 'seller')
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return []
+    throw error
   }
 }
 
@@ -231,75 +143,8 @@ export function pickActiveForwardShipment(shipments: SellerShipmentView[]): Sell
   return active ?? pool[0] ?? null
 }
 
-export async function apiGetShipmentTracking(shipmentId: string): Promise<ShipmentTrackingEventView[]> {
-  const payload = await fetchGatewayJson<unknown>(
-    `/v1/shipments/${encodeURIComponent(shipmentId)}/tracking`,
-    { method: 'GET' },
-  )
-  return normalizeTrackingPayload(payload)
-}
-
-export async function apiGetShipmentLabel(shipmentId: string): Promise<ShipmentLabelResult> {
-  let response: Response
-  try {
-    response = await authFetch(
-      new Request(`${env.apiBaseUrl}/v1/shipments/${encodeURIComponent(shipmentId)}/label`, {
-        method: 'GET',
-      }),
-    )
-  } catch {
-    throw networkError()
-  }
-
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!response.ok) {
-    const errBody = contentType.includes('application/json')
-      ? ((await response.json().catch(() => null)) as unknown)
-      : null
-    throw toApiError(errBody, response)
-  }
-
-  if (contentType.includes('application/json')) {
-    const data = (await response.json().catch(() => ({}))) as {
-      trackingCode?: string
-      labelUrl?: string
-      url?: string
-      expiresAt?: string
-      html?: string
-      htmlContent?: string
-    }
-    return {
-      trackingCode: data.trackingCode,
-      labelUrl: data.labelUrl ?? data.url,
-      expiresAt: data.expiresAt,
-      htmlContent: data.htmlContent ?? data.html,
-    }
-  }
-
-  if (contentType.includes('text/html')) {
-    const htmlContent = await response.text()
-    const labelUrl =
-      typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
-        ? URL.createObjectURL(new Blob([htmlContent], { type: 'text/html' }))
-        : undefined
-    return { htmlContent, labelUrl }
-  }
-
-  const blob = await response.blob()
-  const labelUrl =
-    typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
-      ? URL.createObjectURL(blob)
-      : undefined
-  return { labelUrl }
-}
-
-export function apiRetryShipment(shipmentId: string): Promise<SellerShipmentView> {
-  return fetchGatewayJson<SellerShipmentView>(`/v1/shipments/${encodeURIComponent(shipmentId)}/retry`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  })
-}
+export const apiGetShipmentLabel = getShipmentLabel
+export const apiRetryShipment = retryShipment
 
 export function isShipmentPickedUp(status?: string | null): boolean {
   if (!status) return false

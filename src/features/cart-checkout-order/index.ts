@@ -1,3 +1,6 @@
+export { BuyerOrderDetailPage } from './pages/BuyerOrderDetailPage'
+export type { BuyerOrderDetailPageProps } from './pages/BuyerOrderDetailPage'
+export { BuyerOrdersPage } from './pages/BuyerOrdersPage'
 export { CartPage } from './pages/CartPage'
 export { CheckoutPage } from './pages/CheckoutPage'
 export type { CheckoutPageProps } from './pages/CheckoutPage'

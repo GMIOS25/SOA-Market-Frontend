@@ -10,7 +10,14 @@ import {
   ResetPasswordPage,
   VerifyOtpPage,
 } from '@/features/auth-profile'
-import { CartPage, CheckoutPage, SellerOrderDetailPage, SellerOrdersPage } from '@/features/cart-checkout-order'
+import {
+  BuyerOrderDetailPage,
+  BuyerOrdersPage,
+  CartPage,
+  CheckoutPage,
+  SellerOrderDetailPage,
+  SellerOrdersPage,
+} from '@/features/cart-checkout-order'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
@@ -110,8 +117,8 @@ export const routes: RouteObject[] = [
               { path: 'cart', element: <CartPage /> },
               { path: 'checkout', element: <CheckoutPage /> },
               { path: 'checkout/result', element: soon('pages.checkoutResult', 'T5-08') },
-              { path: 'account/orders', element: soon('pages.orders', 'T4-07') },
-              { path: 'account/orders/:id', element: soon('pages.orderDetail', 'T4-07') },
+              { path: 'account/orders', element: <BuyerOrdersPage /> },
+              { path: 'account/orders/:id', element: <BuyerOrderDetailPage /> },
               { path: 'account/reviews', element: soon('pages.reviews', 'T2-11') },
               { path: 'account/complaints', element: soon('pages.complaints', 'T4-11') },
               { path: 'account/complaints/:id', element: soon('pages.complaintDetail', 'T4-11') },

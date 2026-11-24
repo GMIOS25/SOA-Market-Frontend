@@ -10,7 +10,7 @@ import {
   ResetPasswordPage,
   VerifyOtpPage,
 } from '@/features/auth-profile'
-import { CartPage, CheckoutPage } from '@/features/cart-checkout-order'
+import { CartPage, CheckoutPage, SellerOrderDetailPage, SellerOrdersPage } from '@/features/cart-checkout-order'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
@@ -48,7 +48,7 @@ const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   sellerShop: soon('items.sellerShop', 'T2-07'),
   sellerProducts: soon('items.sellerProducts', 'T3-07'),
   sellerInventory: soon('items.sellerInventory', 'T3-07'),
-  sellerOrders: soon('items.sellerOrders', 'T4-08'),
+  sellerOrders: <SellerOrdersPage />,
   sellerReviews: soon('items.sellerReviews', 'T2-11'),
   sellerComplaints: soon('items.sellerComplaints', 'T4-11'),
 }
@@ -133,7 +133,7 @@ export const routes: RouteObject[] = [
           ...routesFromNav('/seller', SELLER_NAV, SELLER_PAGES),
           { path: 'products/new', element: soon('pages.sellerProductNew', 'T3-07') },
           { path: 'products/:id/edit', element: soon('pages.sellerProductEdit', 'T3-07') },
-          { path: 'orders/:id', element: soon('pages.sellerOrderDetail', 'T4-08') },
+          { path: 'orders/:id', element: <SellerOrderDetailPage /> },
           { path: 'complaints/:id', element: soon('pages.sellerComplaintDetail', 'T4-11') },
         ],
       },

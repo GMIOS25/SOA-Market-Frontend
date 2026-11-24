@@ -66,7 +66,13 @@ describe('portal rendering by role', () => {
     expect(html).toContain('Kênh Người bán')
     expect(html).toContain('Về sàn mua sắm')
     expect(html).toContain('aria-current="page"')
-    expect(html).toContain('T4-08')
+    expect(html).toContain('Quay lại danh sách đơn hàng')
+  })
+
+  it('seller can open the seller orders list (/seller/orders)', async () => {
+    const html = await render('/seller/orders', ['BUYER', 'SELLER'])
+    expect(html).toContain('Quản lý đơn hàng')
+    expect(html).not.toContain(FORBIDDEN)
   })
 
   it('CS can open orders but not admin-only pages, and never sees admin-only menu items', async () => {

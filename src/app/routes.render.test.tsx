@@ -61,6 +61,16 @@ describe('portal rendering by role', () => {
     expect(html).not.toContain(FORBIDDEN)
   })
 
+  it('buyer can open buyer orders list and order detail routes (T4-07)', async () => {
+    const listHtml = await render('/account/orders', ['BUYER'])
+    expect(listHtml).toContain('Đơn hàng của tôi')
+    expect(listHtml).not.toContain(FORBIDDEN)
+
+    const detailHtml = await render('/account/orders/ord-1', ['BUYER'])
+    expect(detailHtml).not.toContain(FORBIDDEN)
+    expect(detailHtml).not.toContain('T4-07')
+  })
+
   it('seller gets the seller workspace with breadcrumb and portal switch', async () => {
     const html = await render('/seller/orders/so-1', ['BUYER', 'SELLER'])
     expect(html).toContain('Kênh Người bán')

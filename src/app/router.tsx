@@ -10,6 +10,7 @@ import {
   ResetPasswordPage,
   VerifyOtpPage,
 } from '@/features/auth-profile'
+import { CartPage, CheckoutPage } from '@/features/cart-checkout-order'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
@@ -106,8 +107,8 @@ export const routes: RouteObject[] = [
             // Không có giỏ hàng khách vãng lai (ASM-09): giỏ & đơn yêu cầu vai trò BUYER.
             element: <RequireRole roles={['BUYER']} />,
             children: [
-              { path: 'cart', element: soon('pages.cart', 'T4-06') },
-              { path: 'checkout', element: soon('pages.checkout', 'T4-06') },
+              { path: 'cart', element: <CartPage /> },
+              { path: 'checkout', element: <CheckoutPage /> },
               { path: 'checkout/result', element: soon('pages.checkoutResult', 'T5-08') },
               { path: 'account/orders', element: soon('pages.orders', 'T4-07') },
               { path: 'account/orders/:id', element: soon('pages.orderDetail', 'T4-07') },

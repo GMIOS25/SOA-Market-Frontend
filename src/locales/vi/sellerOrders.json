@@ -1,0 +1,225 @@
+{
+  "common": {
+    "shopBadge": "Gian hàng: {{name}}",
+    "fallbackShopName": "Gian hàng #{{shortId}}",
+    "fallbackProductName": "Sản phẩm #{{shortId}}",
+    "sellerOrderCodeLabel": "mã gói đơn hàng",
+    "orderCodeLabel": "mã đơn hàng tổng",
+    "trackingCodeLabel": "mã vận đơn",
+    "correlationId": "Mã tra cứu",
+    "confirmSlaShort": "Xác nhận",
+    "confirmSlaLabel": "Hạn xác nhận (T_CONFIRM)",
+    "completeSlaLabel": "Tự hoàn tất (T_COMPLETE)",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới...",
+    "openComplaintBadge": "Đang có khiếu nại",
+    "refundStatus": {
+      "PARTIAL": "Hoàn tiền một phần",
+      "FULL": "Đã hoàn tiền toàn bộ"
+    },
+    "forbiddenTitle": "Không thể truy cập đơn hàng của gian hàng khác",
+    "forbiddenDescription": "Bạn chỉ có quyền xem và xử lý các gói đơn hàng (SellerOrder) thuộc gian hàng của chính mình.",
+    "backToList": "Quay lại danh sách đơn hàng"
+  },
+  "list": {
+    "title": "Quản lý đơn hàng",
+    "subtitle": "Theo dõi, xác nhận, hủy trước khi lấy hàng và xử lý vận đơn cho các gói đơn hàng thuộc gian hàng của bạn.",
+    "totalCount": "{{count}} gói đơn hàng",
+    "filters": {
+      "statusGroupLabel": "Lọc theo trạng thái gói đơn hàng",
+      "fromDate": "Từ ngày",
+      "toDate": "Đến ngày",
+      "invalidDateRange": "Ngày bắt đầu không được lớn hơn ngày kết thúc.",
+      "clearFilters": "Xóa bộ lọc",
+      "statuses": {
+        "ALL": "Tất cả",
+        "AWAITING_CONFIRMATION": "Chờ xác nhận",
+        "CONFIRMED": "Đã xác nhận",
+        "SHIPPING": "Đang giao",
+        "DELIVERED": "Đã giao",
+        "COMPLETED": "Hoàn tất",
+        "CANCELLED": "Đã hủy",
+        "DELIVERY_FAILED": "Giao thất bại"
+      }
+    },
+    "table": {
+      "order": "Mã gói đơn",
+      "items": "Sản phẩm",
+      "status": "Trạng thái & Hạn",
+      "shipment": "Vận chuyển",
+      "total": "Tổng tiền",
+      "actions": "Thao tác",
+      "moreItems": "+{{count}} sản phẩm khác",
+      "noItems": "Không có thông tin sản phẩm",
+      "noTrackingYet": "Chưa có mã vận đơn",
+      "shippingFeeCaption": "Phí ship: {{fee}}",
+      "processAction": "Xử lý ngay",
+      "viewDetailAction": "Xem chi tiết",
+      "createdAt": "Đặt lúc {{datetime}}"
+    },
+    "emptyTitle": "Chưa có đơn hàng nào",
+    "emptyDescription": "Khi có khách đặt mua sản phẩm từ gian hàng của bạn, các gói đơn hàng sẽ xuất hiện tại đây.",
+    "emptyFilteredDescription": "Không có gói đơn hàng nào khớp bộ lọc trạng thái hoặc khoảng thời gian đã chọn.",
+    "loadError": "Không thể tải danh sách đơn hàng của gian hàng lúc này.",
+    "pagination": {
+      "summary": "Trang {{page}} / {{totalPages}} ({{total}} gói đơn hàng)",
+      "prev": "Trước",
+      "next": "Sau"
+    }
+  },
+  "detail": {
+    "title": "Chi tiết gói đơn hàng {{code}}",
+    "loadingTitle": "Chi tiết gói đơn hàng",
+    "backToList": "Quay lại danh sách đơn hàng",
+    "notFoundTitle": "Không tìm thấy gói đơn hàng",
+    "notFoundDescription": "Gói đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống.",
+    "loadError": "Không thể tải chi tiết gói đơn hàng lúc này.",
+    "parentOrderLabel": "Thuộc đơn tổng",
+    "createdAtLabel": "Tạo lúc {{datetime}}",
+    "updatedAtLabel": "Cập nhật {{datetime}}",
+    "deliveredAtLabel": "Đã giao lúc {{datetime}}",
+    "openComplaintAlert": "Gói đơn hàng này đang có khiếu nại mở nên hệ thống tạm khóa tự động hoàn tất.",
+    "cancelNotice": {
+      "title": "Gói đơn hàng đã kết thúc ({{cause}})",
+      "reasonLabel": "Lý do: {{reason}}",
+      "causes": {
+        "SELLER_REJECTED": "Nhà bán từ chối đơn hàng",
+        "SELLER_TIMEOUT": "Quá hạn xác nhận (T_CONFIRM)",
+        "BUYER_CANCELLED": "Người mua đã hủy",
+        "SELLER_CANCELLED": "Nhà bán hủy trước khi lấy hàng",
+        "PAYMENT_EXPIRED": "Hết hạn thanh toán"
+      }
+    },
+    "actions": {
+      "sectionTitle": "Thao tác xử lý đơn hàng",
+      "confirmHint": "Xác nhận gói hàng để hệ thống tự động phát yêu cầu tạo vận đơn sang đơn vị vận chuyển.",
+      "confirmButton": "Xác nhận đơn hàng",
+      "confirmingButton": "Đang xác nhận...",
+      "rejectButton": "Từ chối đơn hàng",
+      "confirmedHint": "Đơn hàng đã xác nhận. Bạn có thể in nhãn vận chuyển hoặc hủy đơn trước khi đơn vị vận chuyển lấy hàng.",
+      "cancelBeforePickupButton": "Hủy đơn trước khi lấy hàng",
+      "cancelLockedByPickup": "Đơn vị vận chuyển đã lấy hàng nên không thể hủy đơn trực tiếp.",
+      "noPendingActions": "Không còn thao tác xử lý nào ở trạng thái hiện tại."
+    },
+    "feedback": {
+      "confirmSuccess": "Đã xác nhận đơn hàng. Hệ thống đang khởi tạo vận đơn cho gói hàng này.",
+      "rejectSuccess": "Đã từ chối đơn hàng và kích hoạt hoàn tiền cho người mua.",
+      "cancelSuccess": "Đã hủy gói đơn hàng trước khi lấy hàng và hoàn tiền cho người mua.",
+      "retryShipmentSuccess": "Đã gửi yêu cầu tạo lại vận đơn thành công.",
+      "actionErrorFallback": "Không thể thực hiện thao tác. Vui lòng thử lại."
+    },
+    "rejectDialog": {
+      "title": "Từ chối gói đơn hàng {{code}}",
+      "description": "Gói đơn hàng của gian hàng sẽ chuyển sang Đã hủy và hoàn tiền cho người mua mà không ảnh hưởng các gian hàng khác trong đơn. Vui lòng nhập rõ lý do từ chối.",
+      "confirm": "Xác nhận từ chối"
+    },
+    "cancelDialog": {
+      "title": "Hủy gói đơn hàng {{code}} trước khi lấy hàng",
+      "description": "Thao tác chỉ thực hiện được khi đơn vị vận chuyển chưa lấy hàng (PICKED_UP). Nếu vận đơn đã tạo sẽ được hủy đồng thời và hoàn tiền người mua.",
+      "confirm": "Xác nhận hủy đơn"
+    },
+    "deliveryAddress": {
+      "title": "Địa chỉ giao hàng",
+      "recipient": "Người nhận",
+      "phone": "Số điện thoại",
+      "address": "Địa chỉ"
+    },
+    "summary": {
+      "title": "Thông tin thanh toán gói hàng",
+      "itemsAmount": "Tiền hàng",
+      "shippingFee": "Phí vận chuyển",
+      "discountAmount": "Giảm giá",
+      "totalAmount": "Tổng giá trị gói",
+      "refundStatus": "Trạng thái hoàn tiền",
+      "refundValues": {
+        "NONE": "Chưa hoàn tiền",
+        "PARTIAL": "Hoàn một phần",
+        "FULL": "Đã hoàn 100%"
+      }
+    }
+  },
+  "pickupAlert": {
+    "error422Title": "Chưa cấu hình địa chỉ lấy hàng (HTTP 422)",
+    "error422Hint": "Không thể xác nhận hoặc tạo vận đơn vì gian hàng chưa có đầy đủ địa chỉ lấy hàng hợp lệ.",
+    "proactiveTitle": "Gian hàng chưa cấu hình địa chỉ lấy hàng",
+    "proactiveDescription": "Bạn cần thiết lập đầy đủ địa chỉ lấy hàng trước khi xác nhận đơn hàng hoặc tạo vận đơn.",
+    "configureLink": "Cấu hình địa chỉ lấy hàng"
+  },
+  "shipment": {
+    "sectionTitle": "Vận đơn & Giao nhận",
+    "refresh": "Tải lại vận đơn",
+    "awaitingConfirmNote": "Vận đơn sẽ được hệ thống tự động khởi tạo ngay sau khi bạn bấm Xác nhận đơn hàng.",
+    "loadError": "Tạm thời không thể tải thông tin vận đơn từ dịch vụ vận chuyển.",
+    "pendingCreationTitle": "Đang khởi tạo vận đơn với đơn vị vận chuyển",
+    "pendingCreationDesc": "Hệ thống đang xử lý tạo vận đơn tự động. Vui lòng làm mới sau giây lát.",
+    "createFailedTitle": "Tạo vận đơn thất bại (CREATE_FAILED)",
+    "createFailedDefaultReason": "Đơn vị vận chuyển từ chối tạo vận đơn hoặc phản hồi quá hạn.",
+    "retryButton": "Tạo lại vận đơn",
+    "retryingButton": "Đang tạo lại...",
+    "printLabelButton": "In nhãn vận chuyển",
+    "printingLabelButton": "Đang tải nhãn...",
+    "carrierLabel": "Đơn vị vận chuyển",
+    "trackingCodeLabel": "Mã vận đơn",
+    "etaLabel": "Dự kiến giao",
+    "deliveryAttemptsLabel": "Số lần giao",
+    "noTrackingCode": "Chưa cấp mã vận đơn",
+    "statuses": {
+      "PENDING_CREATION": "Đang tạo vận đơn",
+      "CREATE_FAILED": "Tạo vận đơn lỗi",
+      "CREATED": "Đã tạo vận đơn",
+      "PICKED_UP": "Đã lấy hàng",
+      "IN_TRANSIT": "Đang trung chuyển",
+      "OUT_FOR_DELIVERY": "Đang giao hàng",
+      "DELIVERED": "Đã giao",
+      "RETURNING": "Đang hoàn hàng",
+      "RETURNED": "Đã hoàn hàng",
+      "CANCELLED": "Đã hủy vận đơn"
+    },
+    "tracking": {
+      "title": "Hành trình vận chuyển",
+      "loadError": "Tạm thời không thể tải chi tiết hành trình vận chuyển.",
+      "empty": "Chưa có sự kiện hành trình từ đơn vị vận chuyển."
+    },
+    "labelDialog": {
+      "title": "Nhãn vận chuyển · {{code}}",
+      "description": "Kiểm tra thông tin vận đơn và mở trang in nhãn cho kiện hàng.",
+      "carrier": "Đơn vị vận chuyển",
+      "trackingCode": "Mã vận đơn",
+      "recipient": "Người nhận",
+      "destination": "Địa chỉ giao",
+      "expiresAt": "Liên kết hết hạn lúc {{datetime}}",
+      "openPrint": "Mở / In nhãn vận chuyển",
+      "close": "Đóng",
+      "noUrlHint": "Đơn vị vận chuyển chưa cung cấp đường dẫn nhãn trực tiếp."
+    }
+  },
+  "history": {
+    "title": "Lịch sử xử lý gói đơn hàng",
+    "empty": "Chưa có bản ghi lịch sử trạng thái.",
+    "notePrefix": "Ghi chú:",
+    "actorLabel": "Tác nhân: {{actor}}",
+    "causes": {
+      "ORDER_CREATED": "Khởi tạo đơn hàng",
+      "CHECKOUT_COMPENSATED": "Bồi thường khởi tạo thanh toán lỗi",
+      "LATE_PAYMENT_REJECTED": "Thanh toán đến muộn sau khi hết hạn",
+      "PAYMENT_SUCCEEDED": "Thanh toán thành công",
+      "PAYMENT_EXPIRED": "Hết hạn thanh toán",
+      "PAYMENT_FAILED": "Thanh toán thất bại",
+      "BUYER_CANCELLED": "Người mua hủy gói đơn",
+      "SELLER_CONFIRMED": "Nhà bán xác nhận đơn hàng",
+      "SELLER_REJECTED": "Nhà bán từ chối đơn hàng",
+      "SELLER_TIMEOUT": "Quá hạn nhà bán xác nhận",
+      "SELLER_CANCELLED": "Nhà bán hủy đơn hàng",
+      "SHIPMENT_CREATED": "Đã tạo vận đơn",
+      "SHIPMENT_PICKED_UP": "Đơn vị vận chuyển đã lấy hàng",
+      "SHIPMENT_DELIVERED": "Giao hàng thành công",
+      "SHIPMENT_RETURNED": "Hoàn hàng về nhà bán",
+      "SHIPMENT_CANCELLED": "Đã hủy vận đơn",
+      "BUYER_CONFIRMED_RECEIPT": "Người mua xác nhận đã nhận hàng",
+      "AUTO_COMPLETE": "Hệ thống tự động hoàn tất",
+      "COMPLAINT_OPENED": "Mở khiếu nại",
+      "COMPLAINT_CLOSED": "Đóng khiếu nại",
+      "REFUND_COMPLETED": "Hoàn tiền hoàn tất"
+    }
+  }
+}

@@ -65,6 +65,8 @@
     "loadError": "Không thể tải danh sách đơn hàng của gian hàng lúc này.",
     "pagination": {
       "summary": "Trang {{page}} / {{totalPages}} ({{total}} gói đơn hàng)",
+      "showingRange": "Hiển thị {{from}}–{{to}} / {{total}} gói đơn hàng",
+      "jumpToPage": "Đến trang",
       "prev": "Trước",
       "next": "Sau"
     }

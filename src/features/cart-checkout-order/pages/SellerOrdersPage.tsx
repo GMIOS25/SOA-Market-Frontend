@@ -1,5 +1,7 @@
 import {
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   ImageOff,
   RefreshCw,
@@ -44,7 +46,21 @@ const STATUS_TABS = [
 
 type StatusTab = (typeof STATUS_TABS)[number]
 
-const PAGE_LIMIT = 20
+const PAGE_LIMIT = 10
+
+function buildPageNumbers(current: number, totalPages: number): (number | 'ellipsis')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+  const pages: (number | 'ellipsis')[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(totalPages - 1, current + 1)
+  if (start > 2) pages.push('ellipsis')
+  for (let p = start; p <= end; p += 1) pages.push(p)
+  if (end < totalPages - 1) pages.push('ellipsis')
+  pages.push(totalPages)
+  return pages
+}
 
 function SellerOrdersSkeleton() {
   return (
@@ -85,6 +101,7 @@ export function SellerOrdersPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
+  const [jumpPageInput, setJumpPageInput] = useState('')
 
   const hasInvalidDateRange = Boolean(fromDate && toDate && fromDate > toDate)
   const hasActiveFilters = statusTab !== 'ALL' || Boolean(fromDate) || Boolean(toDate)
@@ -134,7 +151,24 @@ export function SellerOrdersPage() {
   }, [rawOrderItems, myShopId])
 
   const totalItems = ordersQuery.data?.total ?? 0
-  const totalPages = ordersQuery.data?.totalPages ?? 0
+  const totalPages = Math.max(1, ordersQuery.data?.totalPages ?? 1)
+
+  function handlePageChange(nextPage: number) {
+    const clamped = Math.min(Math.max(1, nextPage), totalPages)
+    setPage(clamped)
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  function handleJumpPageSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const target = Number.parseInt(jumpPageInput, 10)
+    if (Number.isFinite(target) && target >= 1) {
+      handlePageChange(target)
+      setJumpPageInput('')
+    }
+  }
 
   function handleClearFilters() {
     setStatusTab('ALL')
@@ -523,36 +557,90 @@ export function SellerOrdersPage() {
             })}
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-              <span className="tabular-nums">
-                {t('list.pagination.summary', {
-                  page,
-                  totalPages,
+          {totalItems > 0 && (
+            <nav
+              aria-label={t('list.pagination.summary', {
+                page,
+                totalPages,
+                total: formatNumber(totalItems),
+              })}
+              className="flex flex-col items-center justify-between gap-3 pt-2 text-sm sm:flex-row"
+            >
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t('list.pagination.showingRange', {
+                  from: (page - 1) * PAGE_LIMIT + 1,
+                  to: Math.min(page * PAGE_LIMIT, totalItems),
                   total: formatNumber(totalItems),
                 })}
               </span>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  {t('list.pagination.prev')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('list.pagination.next')}
-                </Button>
+
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 tabular-nums">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.pagination.prev')}
+                    disabled={page <= 1 || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+
+                  {buildPageNumbers(page, totalPages).map((item, idx) =>
+                    item === 'ellipsis' ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        aria-hidden="true"
+                        className="px-1.5 text-xs text-muted-foreground select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        size="sm"
+                        variant={item === page ? 'default' : 'ghost'}
+                        aria-current={item === page ? 'page' : undefined}
+                        disabled={ordersQuery.isFetching}
+                        onClick={() => handlePageChange(item)}
+                        className="size-8 p-0"
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.pagination.next')}
+                    disabled={page >= totalPages || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleJumpPageSubmit} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <label htmlFor="seller-orders-jump-page">{t('list.pagination.jumpToPage')}</label>
+                  <input
+                    id="seller-orders-jump-page"
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={jumpPageInput}
+                    onChange={(event) => setJumpPageInput(event.target.value)}
+                    placeholder={String(page)}
+                    className="h-8 w-14 rounded-md border border-input bg-card px-2 text-center text-xs text-foreground tabular-nums focus-visible:outline-2 focus-visible:outline-ring"
+                  />
+                </form>
               </div>
-            </div>
+            </nav>
           )}
         </>
       )}

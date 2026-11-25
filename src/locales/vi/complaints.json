@@ -230,6 +230,7 @@
       "responsiblePartyLabel": "Bên chịu trách nhiệm",
       "reasonLabel": "Lý do quyết định",
       "reasonPlaceholder": "Nhập lập luận phân xử, căn cứ bằng chứng SHA-256 và quy định áp dụng...",
+      "reasonHint": "Bắt buộc nhập lý do trước khi gửi quyết định.",
       "reasonRequiredError": "Bắt buộc nhập lý do quyết định phân xử.",
       "reasonMaxError": "Lý do tối đa {{max}} ký tự.",
       "reasonCounter": "{{count}}/{{max}} ký tự",

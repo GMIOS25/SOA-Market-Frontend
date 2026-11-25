@@ -1,163 +1,98 @@
-import { TriangleAlert } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError } from '@/api/errors'
 import { AuditReasonDialog, CopyableId } from '@/components/shared'
 import { Label } from '@/components/ui/label'
 import { formatVnd } from '@/lib/format'
-import { markRefundManualSuccess, type Refund } from './api'
+import { compactId, type AdminRefund, type MarkManualSuccessPayload } from './admin-exceptions-api'
 
-const BANK_REF_MIN = 3
-const BANK_REF_MAX = 128
-
-export type ManualRefundDialogProps = {
-  refund: Refund | null
-  open: boolean
+type ManualRefundDialogProps = {
+  refund: AdminRefund
+  submitting: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: (updated: Refund) => void
+  onSubmit: (refundId: string, payload: MarkManualSuccessPayload) => Promise<void>
 }
 
-/**
- * Modal "Xác nhận đã hoàn tiền thủ công" (OQ-07, FR-PAY-005):
- * tái sử dụng `<AuditReasonDialog />` để bắt buộc `reason` + ghi Nhật ký kiểm toán,
- * kèm trường `bankTransactionRef` và checkbox `confirmReconciled` khi cổng chưa xác định kết quả.
- */
-export function ManualRefundDialog({ refund, open, onOpenChange, onSuccess }: ManualRefundDialogProps) {
-  const { t } = useTranslation('paymentShipping')
-  const bankRefId = useId()
-  const confirmReconcileId = useId()
-
-  const [bankTransactionRef, setBankTransactionRef] = useState('')
-  const [bankRefTouched, setBankRefTouched] = useState(false)
-  const [bankRefServerError, setBankRefServerError] = useState<string | null>(null)
+export function ManualRefundDialog({ refund, submitting, onOpenChange, onSubmit }: ManualRefundDialogProps) {
+  const { t } = useTranslation('adminExceptions')
+  const fieldId = useId()
+  const [bankRef, setBankRef] = useState('')
   const [confirmReconciled, setConfirmReconciled] = useState(false)
-  const [serverRequiredReconcile, setServerRequiredReconcile] = useState(false)
-
-  const trimmedBankRef = bankTransactionRef.trim()
-  const bankRefValid = trimmedBankRef.length >= BANK_REF_MIN && trimmedBankRef.length <= BANK_REF_MAX
-  const requiresReconcileAck = Boolean(refund?.needsReconciliation) || serverRequiredReconcile
-
-  const clientBankRefError =
-    bankRefTouched && !bankRefValid ? t('exceptions.manualModal.bankRefTooShort') : null
-  const displayedBankRefError = bankRefServerError ?? clientBankRefError
-
-  function handleOpenChange(next: boolean) {
-    if (!next) {
-      setBankTransactionRef('')
-      setBankRefTouched(false)
-      setBankRefServerError(null)
-      setConfirmReconciled(false)
-      setServerRequiredReconcile(false)
-    }
-    onOpenChange(next)
-  }
-
-  async function handleConfirm(reason: string) {
-    if (!refund) return
-    setBankRefTouched(true)
-    setBankRefServerError(null)
-    if (!bankRefValid) return
-
-    try {
-      const updated = await markRefundManualSuccess(refund.refundId, {
-        bankTransactionRef: trimmedBankRef,
-        reason,
-        ...(requiresReconcileAck || confirmReconciled ? { confirmReconciled } : {}),
-      })
-      onSuccess(updated)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.code === 'REFUND_RECONCILIATION_REQUIRED') {
-          setServerRequiredReconcile(true)
-        }
-        const fieldMsg = error.fieldError('bankTransactionRef')
-        if (fieldMsg) setBankRefServerError(fieldMsg)
-      }
-      throw error
-    }
-  }
+  const bankTransactionRef = bankRef.trim()
+  const bankRefValid = bankTransactionRef.length >= 3 && bankTransactionRef.length <= 128
+  const showBankRefError = bankRef.length > 0 && !bankRefValid
 
   return (
     <AuditReasonDialog
-      open={open && Boolean(refund)}
-      onOpenChange={handleOpenChange}
-      title={t('exceptions.manualModal.title')}
-      description={
-        refund ? (
-          <div className="space-y-1.5 text-sm">
-            <p>
-              {t('exceptions.manualModal.description', {
-                refundId: refund.refundId,
-                amount: formatVnd(refund.amount),
-              })}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                {t('exceptions.refunds.orderId')}: <CopyableId value={refund.orderId} label={t('exceptions.refunds.orderId')} />
-              </span>
-              <span className="inline-flex items-center gap-1">
-                {t('exceptions.refunds.sellerOrderId')}: <CopyableId value={refund.sellerOrderId} label={t('exceptions.refunds.sellerOrderId')} />
-              </span>
-            </div>
-            {refund.lastErrorMessage && (
-              <p className="rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">
-                {t('exceptions.refunds.errorDetail')}: {refund.lastErrorMessage}
-              </p>
-            )}
-          </div>
-        ) : undefined
+      open
+      onOpenChange={onOpenChange}
+      title={t('manualDialog.title')}
+      description={t('manualDialog.description')}
+      confirmLabel={t('manualDialog.confirm')}
+      confirmDisabled={!bankRefValid || (refund.needsReconciliation && !confirmReconciled)}
+      onConfirm={(reason) =>
+        onSubmit(refund.refundId, {
+          bankTransactionRef,
+          reason,
+          ...(refund.needsReconciliation ? { confirmReconciled } : {}),
+        })
       }
-      confirmLabel={t('exceptions.manualModal.submit')}
-      confirmDisabled={!bankRefValid || (requiresReconcileAck && !confirmReconciled)}
-      onConfirm={handleConfirm}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={bankRefId}>
-            {t('exceptions.manualModal.bankRefLabel')}{' '}
-            <span aria-hidden="true" className="text-status-danger-foreground">*</span>
-          </Label>
+      <dl
+        aria-label={t('manualDialog.refundSummaryLabel')}
+        className="space-y-1.5 rounded-lg bg-primary-soft p-3.5 text-xs tabular-nums"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <dt>{t('manualDialog.refundId')}</dt>
+          <dd><CopyableId value={refund.refundId} display={compactId(refund.refundId)} label={t('manualDialog.refundId')} /></dd>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <dt>{t('manualDialog.orderId')}</dt>
+          <dd><CopyableId value={refund.orderId} display={compactId(refund.orderId)} label={t('manualDialog.orderId')} /></dd>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <dt>{t('manualDialog.source')}</dt>
+          <dd>{t(`exceptions.sources.${refund.source}` as never, { defaultValue: refund.source })}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <dt>{t('manualDialog.amount')}</dt>
+          <dd className="text-sm font-bold text-price">{formatVnd(refund.amount)}</dd>
+        </div>
+      </dl>
+
+      <fieldset disabled={submitting} className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor={fieldId}>{t('manualDialog.bankRefLabel')}</Label>
           <input
-            id={bankRefId}
+            id={fieldId}
             type="text"
-            value={bankTransactionRef}
-            maxLength={BANK_REF_MAX}
-            placeholder={t('exceptions.manualModal.bankRefPlaceholder')}
+            value={bankRef}
+            onChange={(event) => setBankRef(event.target.value)}
+            placeholder={t('manualDialog.bankRefPlaceholder')}
+            maxLength={128}
             aria-required="true"
-            aria-invalid={displayedBankRefError ? true : undefined}
-            onBlur={() => setBankRefTouched(true)}
-            onChange={(event) => {
-              setBankTransactionRef(event.target.value)
-              if (bankRefServerError) setBankRefServerError(null)
-            }}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 font-mono text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            aria-invalid={showBankRefError || undefined}
+            aria-describedby={showBankRefError ? `${fieldId}-error` : undefined}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 font-mono text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           />
-          {displayedBankRefError ? (
-            <p className="text-xs text-status-danger-foreground">{displayedBankRefError}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t('exceptions.manualModal.bankRefHint')}</p>
+          {showBankRefError && (
+            <p id={`${fieldId}-error`} className="text-xs text-status-danger-foreground">
+              {t('manualDialog.bankRefLength')}
+            </p>
           )}
         </div>
 
-        {requiresReconcileAck && (
-          <div className="space-y-2 rounded-lg border border-status-warning-border bg-status-warning p-3 text-xs text-status-warning-foreground">
-            <p className="flex items-start gap-2 font-medium">
-              <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <span>{t('exceptions.manualModal.reconcileWarning')}</span>
-            </p>
-            <label htmlFor={confirmReconcileId} className="flex cursor-pointer items-start gap-2 text-foreground">
-              <input
-                id={confirmReconcileId}
-                type="checkbox"
-                checked={confirmReconciled}
-                onChange={(event) => setConfirmReconciled(event.target.checked)}
-                className="mt-0.5 size-4 rounded border-input accent-primary"
-              />
-              <span>{t('exceptions.manualModal.confirmReconciledLabel')}</span>
-            </label>
-          </div>
+        {refund.needsReconciliation && (
+          <label className="flex items-start gap-2.5 rounded-md border border-status-warning-border bg-status-warning p-3 text-xs text-status-warning-foreground">
+            <input
+              type="checkbox"
+              checked={confirmReconciled}
+              onChange={(event) => setConfirmReconciled(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span>{t('manualDialog.reconciledCheckbox')}</span>
+          </label>
         )}
-      </div>
+      </fieldset>
     </AuditReasonDialog>
   )
 }

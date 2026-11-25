@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import '@/lib/i18n'
@@ -9,231 +10,183 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import type { Role } from '@/lib/auth/roles'
 import { clearAuthSession, setAuthSession } from '@/lib/auth/session'
 import {
+  listAdminFailedShipments,
   listAdminPayables,
-  listAdminPayments,
   listAdminRefunds,
-  listFailedShipments,
-  listRptExceptions,
+  listAdminReviewPayments,
   markRefundManualSuccess,
-  retryShipment,
-  type PayablesSummary,
-  type Refund,
-  type SellerLedgerEntry,
-  type Shipment,
-} from './api'
+  type AdminRefund,
+} from './admin-exceptions-api'
 import { AdminExceptionsPage } from './AdminExceptionsPage'
 
-vi.mock('./api', async () => {
-  const actual = await vi.importActual<typeof import('./api')>('./api')
+vi.mock('./admin-exceptions-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./admin-exceptions-api')>()
   return {
     ...actual,
     listAdminRefunds: vi.fn(),
     markRefundManualSuccess: vi.fn(),
     listAdminPayables: vi.fn(),
-    listAdminPayments: vi.fn(),
-    listFailedShipments: vi.fn(),
-    retryShipment: vi.fn(),
-    listRptExceptions: vi.fn(),
+    listAdminReviewPayments: vi.fn(),
+    listAdminFailedShipments: vi.fn(),
   }
 })
 
-const orderId = '11111111-1111-4111-8111-111111111111'
-const sellerOrderId = '22222222-2222-4222-8222-222222222222'
-const shopId = '33333333-3333-4333-8333-333333333333'
-const failedRefundId = '44444444-4444-4444-8444-444444444444'
-const reconcileRefundId = '55555555-5555-4555-8555-555555555555'
-const shipmentId = '66666666-6666-4666-8666-666666666666'
-const paymentId = '77777777-7777-4777-8777-777777777777'
+const REFUND_ID = 'aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaa01'
+const ORDER_ID = '11111111-1111-7111-8111-111111111113'
+const SO_ID = '22222222-2222-7222-8222-222222222225'
+const SHOP_ID = '33333333-3333-7333-8333-333333333331'
 
-function loginAs(roles: Role[]) {
-  setAuthSession({
-    accessToken: 'access-token',
-    refreshToken: 'refresh-token',
-    user: {
-      userId: '01a20e22-4887-7e44-95a8-f2e30decc0c6',
-      email: 'ops@soa-market.local',
-      fullName: 'Ops User',
-      phone: '0901234567',
-      roles,
-      status: 'ACTIVE',
-      createdAt: '2026-11-24T00:00:00Z',
-    },
-  })
-}
-
-function makeRefund(overrides: Partial<Refund> = {}): Refund {
+function sampleRefund(overrides: Partial<AdminRefund> = {}): AdminRefund {
   return {
-    refundId: failedRefundId,
-    allocationId: '88888888-8888-4888-8888-888888888888',
-    sellerOrderId,
-    orderId,
+    refundId: REFUND_ID,
+    allocationId: '77777777-7777-7777-8777-777777777705',
+    orderId: ORDER_ID,
+    sellerOrderId: SO_ID,
     complaintId: null,
-    amount: 250_000,
-    source: 'CANCELLATION',
+    amount: 615_000,
+    source: 'DELIVERY_FAILED',
     status: 'FAILED',
-    needsReconciliation: false,
-    idempotencyKey: 'refund:test:1',
-    attempts: 4,
+    idempotencyKey: 'idem-ref-1',
+    attempts: 3,
     nextRetryAt: null,
     gatewayRefundRef: null,
     manualBankRef: null,
     manualConfirmedBy: null,
     manualReason: null,
+    needsReconciliation: false,
     lastErrorCode: 'GATEWAY_TIMEOUT',
-    lastErrorMessage: 'VNPay refund API timed out after 4 retries',
-    createdAt: '2026-11-25T08:00:00Z',
-    updatedAt: '2026-11-25T09:00:00Z',
+    lastErrorMessage: 'Gateway refund timeout after 3 retries',
+    createdAt: '2026-11-24T10:00:00Z',
+    updatedAt: '2026-11-24T11:00:00Z',
     ...overrides,
   }
 }
 
-function makePayables() {
-  const summary: PayablesSummary = {
-    totalGrossAmount: 1_000_000,
-    totalRefundedAmount: 100_000,
-    totalPlatformFee: 45_000,
-    totalNetPayable: 855_000,
-    eligibleNetPayable: 555_000,
-    onHoldNetAmount: 300_000,
-    shopTotals: [
-      {
-        shopId,
-        entriesCount: 2,
-        totalGrossAmount: 1_000_000,
-        totalRefundedAmount: 100_000,
-        totalPlatformFee: 45_000,
-        totalNetPayable: 855_000,
-        eligibleNetPayable: 555_000,
-        onHoldNetAmount: 300_000,
-      },
-    ],
-  }
-  const entries: SellerLedgerEntry[] = [
-    {
-      entryId: '99999999-9999-4999-8999-999999999999',
-      sellerOrderId,
-      shopId,
-      grossAmount: 400_000,
-      itemsAmount: 370_000,
-      refundedAmount: 0,
-      platformFeeRate: 0.05,
-      platformFee: 18_500,
-      netAmount: 381_500,
-      status: 'ON_HOLD',
-      orderCompleted: false,
-      openComplaintsCount: 1,
-      lastEventVersion: 2,
-      eligibleAt: null,
-      updatedAt: '2026-11-25T10:00:00Z',
-    },
-  ]
-  return {
-    summary,
-    data: entries,
-    pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
-  }
-}
-
-function makeFailedShipment(): Shipment {
-  return {
-    shipmentId,
-    sellerOrderId,
-    shopId,
-    buyerId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    kind: 'FORWARD',
-    carrier: 'MOCK_SHIP',
-    trackingCode: null,
-    status: 'CREATE_FAILED',
-    feeKnown: true,
-    feeVnd: 30_000,
-    etaAt: null,
-    createAttempts: 4,
-    failureReason: 'CARRIER_CREATE_UNAVAILABLE: timeout',
-    cancelNeedsReconciliation: false,
-    createdAt: '2026-11-25T08:30:00Z',
-    updatedAt: '2026-11-25T09:15:00Z',
-  }
-}
-
 function setupDefaultMocks() {
-  const failed = makeRefund()
   vi.mocked(listAdminRefunds).mockImplementation(async (query) => {
-    if (query.needsReconciliation === 'true') {
+    if (query?.needsReconciliation === 'true') {
       return {
         data: [
-          makeRefund({
-            refundId: reconcileRefundId,
+          sampleRefund({
+            refundId: 'aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaa02',
             status: 'PROCESSING',
             needsReconciliation: true,
-            lastErrorCode: 'WORKER_INTERRUPTED',
-            lastErrorMessage: 'worker stopped before recording gateway refund response',
+            lastErrorMessage: 'Gateway response uncertain',
           }),
         ],
-        pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
-      }
-    }
-    if (query.source === 'LATE_PAYMENT') {
-      return {
-        data: [makeRefund({ refundId: 'abababab-abab-4bab-8bab-abababababab', source: 'LATE_PAYMENT', status: 'SUCCEEDED' })],
-        pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
-      }
-    }
-    if (query.status === 'SUCCEEDED') {
-      return {
-        data: [makeRefund({ status: 'SUCCEEDED', manualBankRef: 'VCB-REF-999' })],
-        pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+        pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
       }
     }
     return {
-      data: [failed],
-      pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+      data: [sampleRefund()],
+      pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
     }
   })
 
-  vi.mocked(listFailedShipments).mockResolvedValue({
-    shipments: [makeFailedShipment()],
-    pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
-  })
-
-  vi.mocked(listAdminPayments).mockResolvedValue({
+  vi.mocked(listAdminReviewPayments).mockResolvedValue({
     data: [
       {
-        paymentId,
-        orderId,
+        paymentId: '66666666-6666-7666-8666-666666666699',
+        orderId: ORDER_ID,
         gateway: 'VNPAY',
-        gatewayRef: 'VNP-8899',
-        status: 'SUCCEEDED',
-        amount: 500_000,
+        gatewayRef: 'VNP-MISMATCH-01',
+        status: 'PENDING',
+        amount: 990_000,
         paymentUrl: null,
-        expiresAt: '2026-11-25T08:15:00Z',
-        completedAt: '2026-11-25T08:05:00Z',
+        expiresAt: '2026-11-25T10:00:00Z',
+        completedAt: null,
         needsManualReview: true,
-        createdAt: '2026-11-25T08:00:00Z',
+        createdAt: '2026-11-24T09:00:00Z',
       },
     ],
-    pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+    pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
   })
 
-  vi.mocked(listRptExceptions).mockRejectedValue(
-    new ApiError({ status: 503, code: 'SERVICE_UNAVAILABLE', message: 'SVC-RPT unavailable' }),
-  )
+  vi.mocked(listAdminFailedShipments).mockResolvedValue({
+    shipments: [
+      {
+        shipmentId: '88888888-8888-7888-8888-888888888883',
+        sellerOrderId: SO_ID,
+        shopId: SHOP_ID,
+        buyerId: '01a20e22-4887-7e44-95a8-f2e30decc0c6',
+        kind: 'FORWARD',
+        carrier: 'GHN',
+        trackingCode: null,
+        status: 'CREATE_FAILED',
+        feeVnd: 30_000,
+        feeKnown: true,
+        etaAt: null,
+        createAttempts: 4,
+        failureReason: 'CARRIER_CREATE_UNAVAILABLE: timeout',
+        cancelNeedsReconciliation: false,
+        cancelReason: undefined,
+        createdAt: '2026-11-24T08:00:00Z',
+        updatedAt: '2026-11-24T09:00:00Z',
+      },
+    ],
+    pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
+  })
 
-  vi.mocked(listAdminPayables).mockResolvedValue(makePayables())
+  vi.mocked(listAdminPayables).mockResolvedValue({
+    data: [
+      {
+        entryId: 'eeeeeeee-eeee-7eee-8eee-eeeeeeeeee01',
+        sellerOrderId: SO_ID,
+        shopId: SHOP_ID,
+        grossAmount: 1_000_000,
+        itemsAmount: 1_000_000,
+        platformFeeRate: 0.05,
+        platformFee: 50_000,
+        refundedAmount: 0,
+        netAmount: 950_000,
+        status: 'ELIGIBLE',
+        orderCompleted: true,
+        openComplaintsCount: 0,
+        lastEventVersion: 2,
+        eligibleAt: '2026-11-24T12:00:00Z',
+        updatedAt: '2026-11-24T12:00:00Z',
+      },
+    ],
+    pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
+    summary: {
+      totalGrossAmount: 1_000_000,
+      totalPlatformFee: 50_000,
+      totalRefundedAmount: 0,
+      totalNetPayable: 950_000,
+      eligibleNetPayable: 950_000,
+      onHoldNetAmount: 0,
+      shopTotals: [
+        {
+          shopId: SHOP_ID,
+          entriesCount: 1,
+          totalGrossAmount: 1_000_000,
+          totalPlatformFee: 50_000,
+          totalRefundedAmount: 0,
+          totalNetPayable: 950_000,
+          eligibleNetPayable: 950_000,
+          onHoldNetAmount: 0,
+        },
+      ],
+    },
+  })
 }
 
-function mountPage(roles: Role[] = ['ADMINISTRATOR']) {
-  loginAs(roles)
+function mountPage(initialEntry = '/admin/exceptions', roles: Role[] = ['ADMINISTRATOR']) {
+  setAuthSession({
+    accessToken: 'test-token',
+    refreshToken: 'test-refresh',
+    user: { userId: 'test-user', email: 'test@soa.vn', fullName: 'Test', phone: '', createdAt: '', status: 'ACTIVE', roles },
+  })
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <TooltipProvider>
           <AdminExceptionsPage />
         </TooltipProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   )
-  return queryClient
 }
 
 afterEach(() => {
@@ -242,147 +195,185 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-describe('AdminExceptionsPage (T5-09)', () => {
-  it('renders 4 exception groups and confirms manual refund with bankTransactionRef + audit reason', async () => {
+describe('T5-09: AdminExceptionsPage (/admin/exceptions)', () => {
+  it('keeps CS in the exceptions view even via a payables deep link', async () => {
     setupDefaultMocks()
-    vi.mocked(markRefundManualSuccess).mockResolvedValue(
-      makeRefund({
-        status: 'SUCCEEDED',
-        manualBankRef: 'VCB-20261125-001',
-        manualReason: 'Đã chuyển khoản hoàn tiền thủ công cho người mua',
-      }),
-    )
+    mountPage('/admin/exceptions?tab=payables', ['CS'])
 
-    mountPage(['ADMINISTRATOR'])
-
-    // Verify all 4 exception group tabs are present.
-    expect(screen.getByRole('tab', { name: /Hoàn tiền thất bại \/ đối soát/ })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: /Tạo vận đơn lỗi/ })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: /Thanh toán muộn \/ lệch tiền/ })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: /Đơn kẹt & đối soát sàn/ })).toBeTruthy()
-
-    const [confirmBtn] = await screen.findAllByRole('button', { name: 'Xác nhận hoàn tiền thủ công' })
-    fireEvent.click(confirmBtn!)
-
-    const submitBtn = await screen.findByRole('button', { name: 'Xác nhận hoàn tiền thành công' })
-    expect((submitBtn as HTMLButtonElement).disabled).toBe(true)
-
-    fireEvent.change(screen.getByLabelText(/Mã tham chiếu giao dịch ngân hàng/), {
-      target: { value: 'VCB-20261125-001' },
-    })
-    fireEvent.change(screen.getByLabelText(/Lý do/), {
-      target: { value: 'Đã chuyển khoản hoàn tiền thủ công cho người mua' },
-    })
-
-    await waitFor(() => expect((submitBtn as HTMLButtonElement).disabled).toBe(false))
-    fireEvent.click(submitBtn)
-
-    await waitFor(() =>
-      expect(markRefundManualSuccess).toHaveBeenCalledWith(failedRefundId, {
-        bankTransactionRef: 'VCB-20261125-001',
-        reason: 'Đã chuyển khoản hoàn tiền thủ công cho người mua',
-      }),
-    )
-
-    expect(await screen.findByText('Đã xác nhận hoàn tiền thủ công thành công')).toBeTruthy()
-    expect(screen.getByText(/VCB-20261125-001/)).toBeTruthy()
-  })
-
-  it('requires confirmReconciled acknowledgement for PROCESSING refunds needing reconciliation', async () => {
-    setupDefaultMocks()
-    vi.mocked(markRefundManualSuccess).mockResolvedValue(
-      makeRefund({
-        refundId: reconcileRefundId,
-        status: 'SUCCEEDED',
-        needsReconciliation: false,
-        manualBankRef: 'VNP-RECONCILED-77',
-      }),
-    )
-
-    mountPage(['ADMINISTRATOR'])
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cần đối soát' }))
-    const [openModalBtn] = await screen.findAllByRole('button', { name: 'Xác nhận hoàn tiền thủ công' })
-    fireEvent.click(openModalBtn!)
-
-    expect(await screen.findByText(/chưa xác định kết quả từ cổng thanh toán/)).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText(/Mã tham chiếu giao dịch ngân hàng/), {
-      target: { value: 'VNP-RECONCILED-77' },
-    })
-    fireEvent.change(screen.getByLabelText(/Lý do/), {
-      target: { value: 'Đã đối soát sao kê cổng VNPay và chuyển khoản thủ công' },
-    })
-
-    const submitBtn = screen.getByRole('button', { name: 'Xác nhận hoàn tiền thành công' })
-    // Must stay disabled until confirmReconciled checkbox is checked.
-    expect((submitBtn as HTMLButtonElement).disabled).toBe(true)
-
-    fireEvent.click(screen.getByLabelText(/Tôi đã đối soát trực tiếp/))
-    await waitFor(() => expect((submitBtn as HTMLButtonElement).disabled).toBe(false))
-    fireEvent.click(submitBtn)
-
-    await waitFor(() =>
-      expect(markRefundManualSuccess).toHaveBeenCalledWith(reconcileRefundId, {
-        bankTransactionRef: 'VNP-RECONCILED-77',
-        reason: 'Đã đối soát sao kê cổng VNPay và chuyển khoản thủ công',
-        confirmReconciled: true,
-      }),
-    )
-  })
-
-  it('supports retrying CREATE_FAILED shipments, viewing late/mismatch payments, and graceful SVC-RPT fallback', async () => {
-    setupDefaultMocks()
-    vi.mocked(retryShipment).mockResolvedValue({ ...makeFailedShipment(), status: 'CREATED' })
-
-    mountPage(['ADMINISTRATOR'])
-
-    // Group 2: Shipments CREATE_FAILED + Retry
-    fireEvent.click(screen.getByRole('tab', { name: /Tạo vận đơn lỗi/ }))
-    const retryBtn = await screen.findByRole('button', { name: 'Thử tạo lại vận đơn' })
-    expect(screen.getByText(/Đơn vị vận chuyển tạm thời không phản hồi/)).toBeTruthy()
-    fireEvent.click(retryBtn)
-
-    await waitFor(() => expect(retryShipment).toHaveBeenCalledWith(shipmentId))
-    expect(await screen.findByText(/Đã gửi yêu cầu tạo lại vận đơn/)).toBeTruthy()
-
-    // Group 3: Late payment & amount mismatch
-    fireEvent.click(screen.getByRole('tab', { name: /Thanh toán muộn \/ lệch tiền/ }))
-    expect(await screen.findByText('VNP-8899')).toBeTruthy()
-    expect(screen.getByText('Cần kiểm tra thủ công')).toBeTruthy()
-
-    // Group 4: SVC-RPT offline shows ServiceFallbackBanner instead of crashing
-    fireEvent.click(screen.getByRole('tab', { name: /Đơn kẹt & đối soát sàn/ }))
-    expect(await screen.findByText(/Dịch vụ tổng hợp đối soát SVC-RPT chưa khả dụng/)).toBeTruthy()
-  })
-
-  it('displays Payables tab summary, shop totals filter, and ledger entries (FR-PAY-006)', async () => {
-    setupDefaultMocks()
-    mountPage(['ADMINISTRATOR'])
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Khoản phải trả nhà bán' }))
-
-    expect(await screen.findByText('Tổng hợp khoản phải trả theo gian hàng')).toBeTruthy()
-    expect((await screen.findAllByText(/555\.000/)).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/1 khiếu nại mở/).length).toBeGreaterThan(0)
-
-    const [filterShopBtn] = screen.getAllByRole('button', { name: 'Xem chi tiết sổ cái' })
-    fireEvent.click(filterShopBtn!)
-    await waitFor(() =>
-      expect(listAdminPayables).toHaveBeenLastCalledWith(
-        expect.objectContaining({ shopId, page: 1, pageSize: 20 }),
-        expect.any(AbortSignal),
-      ),
-    )
-  })
-
-  it('hides admin-only Payables tab and manual refund mutation controls for CS role', async () => {
-    setupDefaultMocks()
-    mountPage(['CS'])
-
-    expect(await screen.findByText(/Vai trò CSKH chỉ xem danh sách ngoại lệ/)).toBeTruthy()
+    expect(await screen.findByText('Gateway refund timeout after 3 retries')).toBeTruthy()
     expect(screen.queryByRole('tab', { name: 'Khoản phải trả nhà bán' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Xác nhận hoàn tiền thủ công' })).toBeNull()
     expect(listAdminPayables).not.toHaveBeenCalled()
+  })
+
+  it('labels the unavailable stuck-order source without showing an empty result', () => {
+    setupDefaultMocks()
+    mountPage('/admin/exceptions?category=stuckOrders', ['CS'])
+
+    expect(screen.getByText(/Danh sách đơn kẹt trạng thái đang chờ nguồn dữ liệu/)).toBeTruthy()
+    expect(screen.queryByText('Không có ngoại lệ nào cần xử lý')).toBeNull()
+  })
+
+  it('supports arrow-key navigation to the payables panel for an admin', async () => {
+    setupDefaultMocks()
+    mountPage()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Ngoại lệ cần xử lý' }))
+    await user.keyboard('{ArrowRight}')
+
+    const payables = await screen.findByRole('tab', { name: 'Khoản phải trả nhà bán', selected: true })
+    expect(document.activeElement).toBe(payables)
+    expect(screen.getByRole('tabpanel', { name: 'Khoản phải trả nhà bán' }).id).toBe(payables.getAttribute('aria-controls'))
+    expect(await screen.findByText('Tổng hợp khoản phải trả theo từng gian hàng')).toBeTruthy()
+  })
+
+  it('renders failed refunds and confirms manual refund success with bank ref and audit reason', async () => {
+    setupDefaultMocks()
+    vi.mocked(markRefundManualSuccess).mockResolvedValue(
+      sampleRefund({
+        status: 'SUCCEEDED',
+        manualBankRef: 'FT26112500091827',
+        manualReason: 'Đã chuyển khoản hoàn tiền thủ công qua Vietcombank.',
+      }),
+    )
+
+    mountPage()
+
+    expect(await screen.findByText('Gateway refund timeout after 3 retries')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tiền thủ công' }))
+
+    const submitBtn = screen.getByRole('button', { name: 'Xác nhận đã hoàn tiền' })
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true)
+
+    const bankRef = screen.getByLabelText(/Mã giao dịch ngân hàng/)
+    fireEvent.change(bankRef, { target: { value: ' AB ' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /Lý do/ }), {
+      target: { value: 'Đã chuyển khoản hoàn tiền thủ công qua Vietcombank.' },
+    })
+    expect(screen.getByText(/phải có từ 3 đến 128 ký tự/)).toBeTruthy()
+    fireEvent.submit(submitBtn.closest('form')!)
+    expect(markRefundManualSuccess).not.toHaveBeenCalled()
+    fireEvent.change(bankRef, { target: { value: ' FT26112500091827 ' } })
+    await waitFor(() => expect((submitBtn as HTMLButtonElement).disabled).toBe(false))
+
+    fireEvent.click(submitBtn)
+
+    await waitFor(() =>
+      expect(markRefundManualSuccess).toHaveBeenCalledWith(REFUND_ID, {
+        bankTransactionRef: 'FT26112500091827',
+        reason: 'Đã chuyển khoản hoàn tiền thủ công qua Vietcombank.',
+      }),
+    )
+    expect(await screen.findByText(/FT26112500091827/)).toBeTruthy()
+  })
+
+  it('requires confirmReconciled checkbox for reconciliation refunds and displays API error with correlationId', async () => {
+    setupDefaultMocks()
+    vi.mocked(markRefundManualSuccess).mockRejectedValue(
+      new ApiError({
+        status: 409,
+        code: 'CONFLICT',
+        message: 'Hoàn tiền đã được xử lý trước đó.',
+        correlationId: 'corr-manual-409',
+      }),
+    )
+
+    mountPage('/admin/exceptions?category=refundReconciliation')
+
+    expect(await screen.findByText('Gateway response uncertain')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tiền thủ công' }))
+
+    fireEvent.change(screen.getByLabelText(/Mã giao dịch ngân hàng/), { target: { value: 'FT-RECON-01' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /Lý do/ }), {
+      target: { value: 'Đã kiểm tra sao kê ngân hàng xác nhận chưa hoàn.' },
+    })
+
+    const submitBtn = screen.getByRole('button', { name: 'Xác nhận đã hoàn tiền' })
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    await waitFor(() => expect((submitBtn as HTMLButtonElement).disabled).toBe(false))
+
+    fireEvent.click(submitBtn)
+
+    expect(await screen.findByText('Hoàn tiền đã được xử lý trước đó.')).toBeTruthy()
+    expect(screen.getByText('corr-manual-409')).toBeTruthy()
+    expect(markRefundManualSuccess).toHaveBeenCalledWith(
+      'aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaa02',
+      expect.objectContaining({ confirmReconciled: true }),
+    )
+  })
+
+  it('refetches after confirmation and lets the admin recover from an empty last page', async () => {
+    setupDefaultMocks()
+    let confirmed = false
+    vi.mocked(listAdminRefunds).mockImplementation(async (query) => {
+      const page = query?.page ?? 1
+      const totalPages = confirmed ? 1 : 2
+      return {
+        data: page === 1
+          ? [sampleRefund({ refundId: ORDER_ID, lastErrorMessage: 'Refund on page one' })]
+          : confirmed ? [] : [sampleRefund()],
+        pagination: { page, pageSize: 10, totalItems: confirmed ? 10 : 11, totalPages },
+      }
+    })
+    vi.mocked(markRefundManualSuccess).mockImplementation(async () => {
+      confirmed = true
+      return sampleRefund({ status: 'SUCCEEDED', manualBankRef: 'FT-LAST-PAGE' })
+    })
+
+    mountPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'Trang sau' }))
+    expect(await screen.findByText('Gateway refund timeout after 3 retries')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tiền thủ công' }))
+    fireEvent.change(screen.getByLabelText(/Mã giao dịch ngân hàng/), { target: { value: 'FT-LAST-PAGE' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /Lý do/ }), {
+      target: { value: 'Đã kiểm tra sao kê và chuyển tiền.' },
+    })
+    const submit = screen.getByRole('button', { name: 'Xác nhận đã hoàn tiền' })
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(submit)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Về trang còn dữ liệu' }))
+    expect(await screen.findByText('Refund on page one')).toBeTruthy()
+    expect(screen.queryByText('Gateway refund timeout after 3 retries')).toBeNull()
+  })
+
+  it('switches across payment review and failed shipment tabs and degrades gracefully when SVC-SHP fails', async () => {
+    setupDefaultMocks()
+    vi.mocked(listAdminFailedShipments).mockRejectedValue(
+      new ApiError({ status: 503, code: 'SERVICE_UNAVAILABLE', message: 'SVC-SHP down' }),
+    )
+
+    mountPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: /Thanh toán cần kiểm tra/ }))
+    expect(await screen.findByText('VNP-MISMATCH-01')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Vận đơn tạo thất bại/ }))
+    expect(await screen.findByText(/Dịch vụ vận chuyển \(SVC-SHP\) đang gián đoạn/)).toBeTruthy()
+  })
+
+  it('displays seller payables KPIs, shop summaries, and filters by shop and status', async () => {
+    setupDefaultMocks()
+
+    mountPage('/admin/exceptions?tab=payables')
+
+    expect(await screen.findByText('Tổng hợp khoản phải trả theo từng gian hàng')).toBeTruthy()
+    expect(screen.getAllByText('950.000 ₫').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tạm giữ khiếu nại' }))
+    await waitFor(() =>
+      expect(listAdminPayables).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'ON_HOLD', page: 1, pageSize: 10 }),
+      ),
+    )
+
+    fireEvent.click(await screen.findByTitle('Lọc bút toán của gian hàng này'))
+    await waitFor(() =>
+      expect(listAdminPayables).toHaveBeenCalledWith(
+        expect.objectContaining({ shopId: SHOP_ID, status: 'ON_HOLD', page: 1, pageSize: 10 }),
+      ),
+    )
   })
 })

@@ -181,14 +181,16 @@ describe('portal rendering by role', () => {
   })
 
   it('administrator and CS can open exceptions portal (/admin/exceptions — T5-09), while BUYER gets 403', async () => {
-    const adminHtml = await render('/admin/exceptions', ['ADMINISTRATOR'])
+    const adminHtml = await render('/admin/exceptions?tab=payables', ['CS', 'ADMINISTRATOR'])
     expect(adminHtml).toContain('Quản trị ngoại lệ')
     expect(adminHtml).toContain('Khoản phải trả nhà bán')
     expect(adminHtml).not.toContain('T5-09')
     expect(adminHtml).not.toContain(FORBIDDEN)
 
-    const csHtml = await render('/admin/exceptions', ['CS'])
+    const csHtml = await render('/admin/exceptions?tab=payables', ['CS'])
     expect(csHtml).toContain('Quản trị ngoại lệ')
+    expect(csHtml).toContain('Ngoại lệ cần xử lý')
+    expect(csHtml).not.toContain('Khoản phải trả nhà bán')
     expect(csHtml).not.toContain('T5-09')
     expect(csHtml).not.toContain(FORBIDDEN)
 

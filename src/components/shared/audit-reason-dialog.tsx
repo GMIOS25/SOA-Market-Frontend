@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, ScrollText, TriangleAlert } from 'lucide-react'
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -62,6 +62,7 @@ export function AuditReasonDialog({
 }: AuditReasonDialogProps) {
   const { t } = useTranslation('shared')
   const fieldId = useId()
+  const submittingRef = useRef(false)
   const [submitError, setSubmitError] = useState<ApiError | Error | null>(null)
 
   const schema = useMemo(
@@ -89,15 +90,24 @@ export function AuditReasonDialog({
     if (open) reset({ reason: '' })
   }, [open, reset])
 
-  const submit = handleSubmit(async ({ reason }) => {
-    setSubmitError(null)
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (confirmDisabled || submittingRef.current) return
+    submittingRef.current = true
     try {
-      await onConfirm(reason)
-      onOpenChange(false)
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error : new Error(String(error)))
+      await handleSubmit(async ({ reason }) => {
+        setSubmitError(null)
+        try {
+          await onConfirm(reason)
+          onOpenChange(false)
+        } catch (error) {
+          setSubmitError(error instanceof Error ? error : new Error(String(error)))
+        }
+      })(event)
+    } finally {
+      submittingRef.current = false
     }
-  })
+  }
 
   const hintId = `${fieldId}-hint`
   const errorId = `${fieldId}-error`
@@ -108,7 +118,7 @@ export function AuditReasonDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!submitting) {
+        if (!submitting && !submittingRef.current) {
           if (!next) setSubmitError(null)
           onOpenChange(next)
         }

@@ -1,0 +1,132 @@
+{
+  "title": "Quản trị ngoại lệ & Khoản phải trả",
+  "subtitle": "Theo dõi các ngoại lệ thanh toán, hoàn tiền thủ công (OQ-07), vận đơn lỗi khởi tạo và sổ cái khoản phải trả nhà bán.",
+  "refresh": "Làm mới",
+  "refreshing": "Đang làm mới...",
+  "tabs": {
+    "ariaLabel": "Phân hệ quản trị ngoại lệ và công nợ",
+    "exceptions": "Ngoại lệ cần xử lý",
+    "payables": "Khoản phải trả nhà bán"
+  },
+  "exceptions": {
+    "groupLabel": "Loại ngoại lệ",
+    "categories": {
+      "refundFailed": "Hoàn tiền thất bại",
+      "refundReconciliation": "Hoàn tiền cần đối soát",
+      "paymentReview": "Thanh toán cần kiểm tra",
+      "shipmentCreateFailed": "Vận đơn tạo thất bại",
+      "stuckOrders": "Đơn kẹt trạng thái"
+    },
+    "descriptions": {
+      "refundFailed": "Các yêu cầu hoàn tiền tự động đã thất bại hết số lượt thử lại (N_RETRY), cần Admin chuyển khoản thủ công và xác nhận đối soát.",
+      "refundReconciliation": "Các yêu cầu hoàn tiền có kết quả không chắc chắn từ cổng thanh toán, cần đối chiếu sao kê trước khi xác nhận hoàn tất.",
+      "paymentReview": "Các giao dịch thanh toán bị gắn cờ cần kiểm tra thủ công (lệch số tiền ghi nhận hoặc bất thường từ cổng thanh toán).",
+      "shipmentCreateFailed": "Các vận đơn đã hết lượt thử lại tạo mã với đơn vị vận chuyển (CREATE_FAILED) cần theo dõi phối hợp xử lý.",
+      "stuckOrders": "Danh sách đơn kẹt trạng thái đang chờ nguồn dữ liệu từ hệ thống."
+    },
+    "emptyTitle": "Không có ngoại lệ nào cần xử lý",
+    "emptyDescription": "Hệ thống đang vận hành ổn định trong nhóm ngoại lệ này.",
+    "loadError": "Tạm thời không thể tải danh sách ngoại lệ.",
+    "shipmentDegraded": "Dịch vụ vận chuyển (SVC-SHP) đang gián đoạn. Các nhóm ngoại lệ thanh toán và hoàn tiền vẫn hoạt động bình thường.",
+    "columns": {
+      "refundId": "Mã hoàn tiền",
+      "orderAndPackage": "Đơn hàng / Gói hàng",
+      "orderPrefix": "Đơn:",
+      "packagePrefix": "Gói:",
+      "source": "Nguồn hoàn",
+      "amount": "Số tiền",
+      "attemptsAndError": "Số lần thử & Lỗi gần nhất",
+      "status": "Trạng thái",
+      "action": "Thao tác",
+      "paymentId": "Mã giao dịch",
+      "gateway": "Cổng & Mã tham chiếu",
+      "createdAt": "Thời điểm tạo",
+      "shipmentId": "Mã vận đơn nội bộ",
+      "shopId": "Gian hàng",
+      "carrier": "Đơn vị vận chuyển",
+      "failureReason": "Nguyên nhân lỗi"
+    },
+    "sources": {
+      "CANCELLATION": "Hủy đơn hàng",
+      "DELIVERY_FAILED": "Giao hàng thất bại",
+      "LATE_PAYMENT": "Thanh toán trễ hạn",
+      "COMPLAINT": "Khiếu nại"
+    },
+    "refundStatuses": {
+      "REQUESTED": "Đã yêu cầu",
+      "PROCESSING": "Đang xử lý",
+      "SUCCEEDED": "Đã hoàn tiền",
+      "FAILED": "Thất bại"
+    },
+    "reconciliationBadge": "Cần đối soát",
+    "attemptsLabel": "{{count}} lần thử",
+    "manualConfirmAction": "Xác nhận hoàn tiền thủ công",
+    "manualConfirmedTag": "Đã xác nhận thủ công ({{ref}})",
+    "manualSuccessBanner": "Đã xác nhận hoàn tiền thủ công thành công cho mã {{id}} (Mã NH: {{ref}}).",
+    "failureReasons": {
+      "carrierUnavailable": "Đơn vị vận chuyển tạm thời không phản hồi sau nhiều lần hệ thống tự động thử lại.",
+      "operationUnconfirmed": "Chưa nhận được xác nhận từ đơn vị vận chuyển, hệ thống đang chờ đối soát lại.",
+      "pickupAddressIncomplete": "Địa chỉ lấy hàng của nhà bán chưa đầy đủ hoặc chưa hợp lệ.",
+      "parcelInvalid": "Thông tin kiện hàng hoặc khối lượng vượt giới hạn của đơn vị vận chuyển.",
+      "generic": "Không thể khởi tạo vận đơn với đơn vị vận chuyển vào lúc này."
+    }
+  },
+  "manualDialog": {
+    "title": "Xác nhận hoàn tiền thủ công",
+    "description": "Ghi nhận mã giao dịch chuyển khoản ngân hàng thực tế để chuyển trạng thái hoàn tiền sang Thành công (SUCCEEDED) và lưu vết kiểm toán.",
+    "refundSummaryLabel": "Thông tin khoản hoàn tiền",
+    "refundId": "Mã hoàn tiền",
+    "orderId": "Mã đơn hàng",
+    "amount": "Số tiền hoàn",
+    "source": "Nguồn hoàn",
+    "bankRefLabel": "Mã giao dịch ngân hàng (bankTransactionRef)",
+    "bankRefPlaceholder": "VD: FT26112500091827",
+    "bankRefLength": "Mã giao dịch ngân hàng phải có từ 3 đến 128 ký tự.",
+    "reconciledCheckbox": "Tôi xác nhận đã đối chiếu sao kê ngân hàng / cổng thanh toán và đảm bảo không hoàn tiền trùng lặp.",
+    "cancel": "Hủy bỏ",
+    "confirm": "Xác nhận đã hoàn tiền"
+  },
+  "payables": {
+    "kpi": {
+      "gross": "Tổng doanh thu gộp",
+      "platformFee": "Phí nền tảng (5%)",
+      "eligible": "Đủ điều kiện chi trả",
+      "onHold": "Đang tạm giữ (khiếu nại)"
+    },
+    "shopSummaryTitle": "Tổng hợp khoản phải trả theo từng gian hàng",
+    "shopSummaryCount": "{{count}} gian hàng",
+    "filterByShop": "Lọc bút toán của gian hàng này",
+    "clearShopFilter": "Đang lọc gian hàng {{shopId}} · Xóa lọc",
+    "statusFilterLabel": "Lọc theo trạng thái sổ cái",
+    "statuses": {
+      "ALL": "Tất cả",
+      "NOT_ELIGIBLE": "Chưa đủ điều kiện",
+      "ON_HOLD": "Tạm giữ khiếu nại",
+      "ELIGIBLE": "Đủ điều kiện chi trả"
+    },
+    "columns": {
+      "sellerOrder": "Gói đơn hàng",
+      "shop": "Gian hàng",
+      "gross": "Doanh thu gộp",
+      "platformFee": "Phí nền tảng",
+      "refunded": "Đã hoàn",
+      "netAmount": "Thực trả nhà bán",
+      "status": "Trạng thái",
+      "updatedAt": "Cập nhật"
+    },
+    "openComplaints": "{{count}} khiếu nại mở",
+    "eligibleAt": "Đủ ĐK lúc {{datetime}}",
+    "entriesCount": "{{count}} bút toán",
+    "emptyTitle": "Chưa có bút toán công nợ nào",
+    "emptyDescription": "Chưa có dữ liệu khoản phải trả nhà bán khớp với bộ lọc hiện tại.",
+    "loadError": "Tạm thời không thể tải sổ cái khoản phải trả nhà bán."
+  },
+  "pagination": {
+    "returnToAvailablePage": "Về trang còn dữ liệu",
+    "summary": "Trang {{page}} / {{totalPages}} · {{total}} mục",
+    "showingRange": "Hiển thị {{from}}–{{to}} / {{total}} mục",
+    "jumpToPage": "Đến trang",
+    "prev": "Trang trước",
+    "next": "Trang sau"
+  }
+}

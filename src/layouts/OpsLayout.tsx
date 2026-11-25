@@ -22,43 +22,47 @@ type SidebarNavProps = {
 function SidebarNav({ groups, mode, onNavigate }: SidebarNavProps) {
   const { t } = useTranslation('nav')
   const { t: tCommon } = useTranslation()
-  const labelClass = mode === 'full' ? '' : mode === 'auto' ? 'hidden lg:inline' : 'sr-only'
+  const location = useLocation()
+  const activeNav = findActiveNav(groups, location.pathname)
+  const labelClass = mode === 'full' ? 'truncate' : mode === 'auto' ? 'hidden truncate lg:inline' : 'sr-only'
   const headingClass = mode === 'full' ? '' : mode === 'auto' ? 'hidden lg:block' : 'sr-only'
 
   return (
-    <nav aria-label={tCommon('header.mainNav')} className="flex flex-col gap-4 p-2">
+    <nav aria-label={tCommon('header.mainNav')} className="flex flex-col divide-y divide-border/70 p-2.5">
       {groups.map((group) => (
-        <div key={group.id} className="flex flex-col gap-1">
+        <div key={group.id} className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0">
           {groups.length > 1 && (
-            <p className={cn('px-3 pt-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase', headingClass)}>
+            <p className={cn('px-3 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase', headingClass)}>
               {t(`groups.${group.id}`)}
             </p>
           )}
-          <ul className="flex flex-col gap-0.5">
+          <ul className="flex flex-col divide-y divide-border/50">
             {group.items.map((item) => {
               const label = t(`items.${item.id}`)
+              const isActive = activeNav?.item.id === item.id
               const link = (
                 <NavLink
                   to={item.to}
                   end={item.end}
                   onClick={onNavigate}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                      mode === 'rail' && 'justify-center px-0',
-                      mode === 'auto' && 'justify-center px-0 lg:justify-start lg:px-3',
-                      isActive
-                        ? 'bg-primary-soft text-primary'
-                        : 'text-muted-foreground hover:bg-background hover:text-foreground',
-                    )
-                  }
+                  className={cn(
+                    'flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                    mode === 'rail' && 'justify-center px-0',
+                    mode === 'auto' && 'justify-center px-0 lg:justify-start lg:px-3',
+                    isActive
+                      ? 'border-l-3 border-primary bg-primary-soft font-semibold text-primary shadow-2xs'
+                      : 'font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
                 >
-                  <item.icon aria-hidden="true" className="size-5 shrink-0" />
+                  <item.icon
+                    aria-hidden="true"
+                    className={cn('size-5 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')}
+                  />
                   <span className={labelClass}>{label}</span>
                 </NavLink>
               )
               return (
-                <li key={item.id}>
+                <li key={item.id} className="py-1 first:pt-0 last:pb-0">
                   {mode === 'full' ? (
                     link
                   ) : (

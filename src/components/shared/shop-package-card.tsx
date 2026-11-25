@@ -31,6 +31,8 @@ export type ShopPackageCardProps = {
   notice?: ReactNode
   /** Danh sách <ShopPackageItem />. */
   children: ReactNode
+  /** Nội dung liên quan trực tiếp tới các sản phẩm, VD theo dõi giao hàng của gói. */
+  afterItems?: ReactNode
   /** Thường là <ShopPackageSummary />. */
   footer?: ReactNode
   /** Hành động riêng của gói: Hủy gói / Đã nhận hàng / In nhãn / Theo dõi hành trình. */
@@ -48,6 +50,7 @@ export function ShopPackageCard({
   headerStart,
   notice,
   children,
+  afterItems,
   footer,
   actions,
   shopHref,
@@ -91,10 +94,15 @@ export function ShopPackageCard({
         {children}
       </ul>
 
+      {afterItems && <div className="border-t border-border px-4 empty:hidden">{afterItems}</div>}
+
       {(footer || actions) && (
-        <footer className="flex flex-col gap-3 border-t border-border bg-background/60 px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+        <footer className={cn(
+          'flex flex-col border-t border-border bg-background/60 px-4 sm:flex-row sm:justify-between',
+          afterItems ? 'gap-1 py-2 sm:items-start' : 'gap-3 py-3 sm:items-end',
+        )}>
           <div className="min-w-0 flex-1">{footer}</div>
-          {actions && <div className="flex flex-wrap gap-2 sm:justify-end">{actions}</div>}
+          {actions && <div className={cn('flex flex-wrap gap-2 sm:justify-end', afterItems && 'sm:self-start sm:py-1.5')}>{actions}</div>}
         </footer>
       )}
     </article>
@@ -110,6 +118,8 @@ export type ShopPackageItemProps = {
   quantity: number
   /** Đơn giá VND (đơn hàng: `unitPrice` đã chụp). */
   unitPrice: number
+  /** Dùng khi đơn giá trùng với giá dòng đã đặt ở cột bên phải. */
+  quantityOnly?: boolean
   href?: string
   /** Phần tử trước ảnh — VD checkbox chọn dòng ở Giỏ hàng. */
   start?: ReactNode
@@ -127,6 +137,7 @@ export function ShopPackageItem({
   imageUrl,
   quantity,
   unitPrice,
+  quantityOnly = false,
   href,
   start,
   badges,
@@ -156,7 +167,7 @@ export function ShopPackageItem({
         {variantLabel && <p className="text-xs text-muted-foreground">{variantLabel}</p>}
         {badges && <div className="flex flex-wrap gap-1.5">{badges}</div>}
         <p className="text-sm text-muted-foreground tabular-nums">
-          {t('package.quantityTimesPrice', { quantity, price: formatVnd(unitPrice) })}
+          {quantityOnly ? t('package.quantity', { count: quantity }) : t('package.quantityTimesPrice', { quantity, price: formatVnd(unitPrice) })}
         </p>
       </div>
       {end && <div className="shrink-0">{end}</div>}

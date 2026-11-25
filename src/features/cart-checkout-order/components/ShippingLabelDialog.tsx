@@ -97,13 +97,7 @@ export function ShippingLabelDialog({
             </p>
           )}
 
-          {label?.htmlContent && (
-            <div className="max-h-48 overflow-auto rounded border border-border bg-card p-3 font-mono text-xs whitespace-pre-wrap text-foreground">
-              {label.htmlContent}
-            </div>
-          )}
-
-          {!label?.labelUrl && !label?.htmlContent && (
+          {!label?.labelUrl && (
             <p className="text-xs text-muted-foreground">{t('shipment.labelDialog.noUrlHint')}</p>
           )}
         </div>

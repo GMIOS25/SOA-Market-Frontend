@@ -26,6 +26,8 @@
     "subtitle": "Theo dõi, xác nhận, hủy trước khi lấy hàng và xử lý vận đơn cho các gói đơn hàng thuộc gian hàng của bạn.",
     "totalCount": "{{count}} gói đơn hàng",
     "filters": {
+      "dateRange": "Khoảng thời gian",
+      "dateRangeActive": "Đang lọc theo ngày",
       "statusGroupLabel": "Lọc theo trạng thái gói đơn hàng",
       "fromDate": "Từ ngày",
       "toDate": "Đến ngày",
@@ -63,6 +65,8 @@
     "loadError": "Không thể tải danh sách đơn hàng của gian hàng lúc này.",
     "pagination": {
       "summary": "Trang {{page}} / {{totalPages}} ({{total}} gói đơn hàng)",
+      "showingRange": "Hiển thị {{from}}–{{to}} / {{total}} gói đơn hàng",
+      "jumpToPage": "Đến trang",
       "prev": "Trước",
       "next": "Sau"
     }
@@ -195,6 +199,7 @@
   },
   "history": {
     "title": "Lịch sử xử lý gói đơn hàng",
+    "count": "{{count}} cập nhật",
     "empty": "Chưa có bản ghi lịch sử trạng thái.",
     "notePrefix": "Ghi chú:",
     "actorLabel": "Tác nhân: {{actor}}",

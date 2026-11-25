@@ -9,6 +9,8 @@ export const STATUS_TONES = {
   DRAFT: 'neutral',
   PENDING_VERIFICATION: 'neutral',
   INITIATED: 'neutral',
+  PENDING_CREATION: 'neutral',
+  CREATED: 'info',
   NONE: 'neutral',
   WITHDRAWN: 'neutral',
   NOT_ELIGIBLE: 'neutral',
@@ -22,7 +24,7 @@ export const STATUS_TONES = {
   UNDER_REVIEW: 'info',
   EXECUTING: 'info',
   // Warning / Action Needed
-  /** Hồ sơ nhà bán chờ Admin duyệt (SVC-SEL). */
+  /** Hồ sơ nhà bán hoặc giao dịch đang chờ xử lý (SVC-SEL, SVC-PAY). */
   PENDING: 'warning',
   PENDING_PAYMENT: 'warning',
   AWAITING_CONFIRMATION: 'warning',
@@ -53,6 +55,7 @@ export const STATUS_TONES = {
   EXPIRED: 'danger',
   CREATE_FAILED: 'danger',
   DELIVERY_FAILED: 'danger',
+  DELIVERY_ATTEMPT_FAILED: 'danger',
   RETURNED: 'danger',
   ESCALATED: 'danger',
   HIDDEN: 'danger',

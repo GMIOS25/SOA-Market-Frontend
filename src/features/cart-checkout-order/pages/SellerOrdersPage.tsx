@@ -1,5 +1,7 @@
 import {
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   ImageOff,
   RefreshCw,
@@ -14,6 +16,7 @@ import { Link } from 'react-router'
 import { ApiError } from '@/api/errors'
 import { CopyableId, ServiceFallbackBanner, SlaCountdownPill } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -43,7 +46,21 @@ const STATUS_TABS = [
 
 type StatusTab = (typeof STATUS_TABS)[number]
 
-const PAGE_LIMIT = 20
+const PAGE_LIMIT = 10
+
+function buildPageNumbers(current: number, totalPages: number): (number | 'ellipsis')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+  const pages: (number | 'ellipsis')[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(totalPages - 1, current + 1)
+  if (start > 2) pages.push('ellipsis')
+  for (let p = start; p <= end; p += 1) pages.push(p)
+  if (end < totalPages - 1) pages.push('ellipsis')
+  pages.push(totalPages)
+  return pages
+}
 
 function SellerOrdersSkeleton() {
   return (
@@ -84,6 +101,7 @@ export function SellerOrdersPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
+  const [jumpPageInput, setJumpPageInput] = useState('')
 
   const hasInvalidDateRange = Boolean(fromDate && toDate && fromDate > toDate)
   const hasActiveFilters = statusTab !== 'ALL' || Boolean(fromDate) || Boolean(toDate)
@@ -133,7 +151,24 @@ export function SellerOrdersPage() {
   }, [rawOrderItems, myShopId])
 
   const totalItems = ordersQuery.data?.total ?? 0
-  const totalPages = ordersQuery.data?.totalPages ?? 0
+  const totalPages = Math.max(1, ordersQuery.data?.totalPages ?? 1)
+
+  function handlePageChange(nextPage: number) {
+    const clamped = Math.min(Math.max(1, nextPage), totalPages)
+    setPage(clamped)
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  function handleJumpPageSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const target = Number.parseInt(jumpPageInput, 10)
+    if (Number.isFinite(target) && target >= 1) {
+      handlePageChange(target)
+      setJumpPageInput('')
+    }
+  }
 
   function handleClearFilters() {
     setStatusTab('ALL')
@@ -186,7 +221,7 @@ export function SellerOrdersPage() {
         aria-label={t('list.filters.statusGroupLabel')}
         className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs"
       >
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('list.filters.statusGroupLabel')}>
+        <div className="flex gap-1.5 overflow-x-auto p-1 [scrollbar-width:thin] sm:flex-wrap" role="group" aria-label={t('list.filters.statusGroupLabel')}>
           {STATUS_TABS.map((tab) => {
             const active = statusTab === tab
             return (
@@ -199,7 +234,7 @@ export function SellerOrdersPage() {
                   setPage(1)
                 }}
                 className={cn(
-                  'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                  'inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                   active
                     ? 'border-primary bg-primary-soft text-primary'
                     : 'border-border bg-background text-muted-foreground hover:text-foreground',
@@ -211,43 +246,49 @@ export function SellerOrdersPage() {
           })}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="seller-orders-from" className="text-xs">
-                {t('list.filters.fromDate')}
-              </Label>
-              <input
-                id="seller-orders-from"
-                type="date"
-                value={fromDate}
-                onChange={(e) => {
-                  setFromDate(e.target.value)
-                  setPage(1)
-                }}
-                className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
+        <div className="flex flex-wrap items-start gap-2">
+          <DisclosurePanel
+            title={t('list.filters.dateRange')}
+            summary={fromDate || toDate ? t('list.filters.dateRangeActive') : undefined}
+            initiallyOpen={Boolean(fromDate || toDate)}
+            className="max-w-full flex-1"
+          >
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="seller-orders-from" className="text-xs">
+                  {t('list.filters.fromDate')}
+                </Label>
+                <input
+                  id="seller-orders-from"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => {
+                    setFromDate(e.target.value)
+                    setPage(1)
+                  }}
+                  className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="seller-orders-to" className="text-xs">
-                {t('list.filters.toDate')}
-              </Label>
-              <input
-                id="seller-orders-to"
-                type="date"
-                value={toDate}
-                onChange={(e) => {
-                  setToDate(e.target.value)
-                  setPage(1)
-                }}
-                className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-              />
+              <div className="space-y-1">
+                <Label htmlFor="seller-orders-to" className="text-xs">
+                  {t('list.filters.toDate')}
+                </Label>
+                <input
+                  id="seller-orders-to"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => {
+                    setToDate(e.target.value)
+                    setPage(1)
+                  }}
+                  className="block h-9 rounded-md border border-input bg-card px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
             </div>
-          </div>
-
+          </DisclosurePanel>
           {hasActiveFilters && (
-            <Button type="button" variant="outline" size="sm" onClick={handleClearFilters}>
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearFilters}>
               {t('list.filters.clearFilters')}
             </Button>
           )}
@@ -516,36 +557,90 @@ export function SellerOrdersPage() {
             })}
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-              <span className="tabular-nums">
-                {t('list.pagination.summary', {
-                  page,
-                  totalPages,
+          {totalItems > 0 && (
+            <nav
+              aria-label={t('list.pagination.summary', {
+                page,
+                totalPages,
+                total: formatNumber(totalItems),
+              })}
+              className="flex flex-col items-center justify-between gap-3 pt-2 text-sm sm:flex-row"
+            >
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t('list.pagination.showingRange', {
+                  from: (page - 1) * PAGE_LIMIT + 1,
+                  to: Math.min(page * PAGE_LIMIT, totalItems),
                   total: formatNumber(totalItems),
                 })}
               </span>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  {t('list.pagination.prev')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('list.pagination.next')}
-                </Button>
+
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 tabular-nums">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.pagination.prev')}
+                    disabled={page <= 1 || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+
+                  {buildPageNumbers(page, totalPages).map((item, idx) =>
+                    item === 'ellipsis' ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        aria-hidden="true"
+                        className="px-1.5 text-xs text-muted-foreground select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={item}
+                        type="button"
+                        size="sm"
+                        variant={item === page ? 'default' : 'ghost'}
+                        aria-current={item === page ? 'page' : undefined}
+                        disabled={ordersQuery.isFetching}
+                        onClick={() => handlePageChange(item)}
+                        className="size-8 p-0"
+                      >
+                        {item}
+                      </Button>
+                    ),
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={t('list.pagination.next')}
+                    disabled={page >= totalPages || ordersQuery.isFetching}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="size-8 p-0"
+                  >
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleJumpPageSubmit} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <label htmlFor="seller-orders-jump-page">{t('list.pagination.jumpToPage')}</label>
+                  <input
+                    id="seller-orders-jump-page"
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={jumpPageInput}
+                    onChange={(event) => setJumpPageInput(event.target.value)}
+                    placeholder={String(page)}
+                    className="h-8 w-14 rounded-md border border-input bg-card px-2 text-center text-xs text-foreground tabular-nums focus-visible:outline-2 focus-visible:outline-ring"
+                  />
+                </form>
               </div>
-            </div>
+            </nav>
           )}
         </>
       )}

@@ -2,6 +2,8 @@
   "DRAFT": "Nháp",
   "PENDING_VERIFICATION": "Chờ xác thực",
   "INITIATED": "Đã khởi tạo",
+  "PENDING_CREATION": "Chờ tạo vận đơn",
+  "CREATED": "Đã tạo vận đơn",
   "NONE": "Không có",
   "WITHDRAWN": "Đã rút",
   "NOT_ELIGIBLE": "Chưa đủ điều kiện",
@@ -15,7 +17,7 @@
   "UNDER_REVIEW": "Đang xem xét",
   "EXECUTING": "Đang thực thi",
 
-  "PENDING": "Chờ duyệt",
+  "PENDING": "Chờ xử lý",
   "PENDING_PAYMENT": "Chờ thanh toán",
   "AWAITING_CONFIRMATION": "Chờ nhà bán xác nhận",
   "PENDING_REVIEW": "Chờ duyệt",
@@ -45,6 +47,7 @@
   "EXPIRED": "Hết hạn",
   "CREATE_FAILED": "Tạo vận đơn lỗi",
   "DELIVERY_FAILED": "Giao thất bại",
+  "DELIVERY_ATTEMPT_FAILED": "Giao không thành công",
   "RETURNED": "Đã hoàn hàng",
   "ESCALATED": "Chuyển CSKH",
   "HIDDEN": "Đã ẩn"

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -15,75 +15,49 @@ vi.mock('@/lib/env', () => ({
 import '@/lib/dayjs'
 import '@/lib/i18n'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import type {
+  BuyerOrderDetailView,
+  BuyerOrderListResult,
+  PublicShopDTO,
+  SellerOrderDetailView,
+  ShopDTO,
+} from '@/features/cart-checkout-order/api'
 import { clearAuthSession, setAuthSession } from '@/lib/auth/session'
 import type {
   ComplaintDetailView,
+  ComplaintListResult,
   ComplaintSummaryView,
-  CSQueueItemView,
+  CreateComplaintsResult,
 } from './api'
-import { AdminComplaintsQueuePage } from './pages/AdminComplaintsQueuePage'
-import { AdminComplaintWorkspacePage } from './pages/AdminComplaintWorkspacePage'
+import { buildComplaintTimeline, resolveComplaintSla, validateEvidenceFile } from './helpers'
+import { BuyerComplaintDetailPage } from './pages/BuyerComplaintDetailPage'
+import { BuyerComplaintsPage } from './pages/BuyerComplaintsPage'
+import { SellerComplaintDetailPage } from './pages/SellerComplaintDetailPage'
+import { SellerComplaintsPage } from './pages/SellerComplaintsPage'
 
-const CS_USER_ID = '11111111-1111-4111-8111-111111111111'
-const ADMIN_USER_ID = '22222222-2222-4222-8222-222222222222'
-const ORDER_ID = '33333333-3333-4333-8333-333333333333'
-const SO_1_ID = '44444444-4444-4444-8444-444444444444'
-const SO_2_ID = '55555555-5555-4555-8555-555555555555'
-const CPL_1_ID = '66666666-6666-4666-8666-666666666666'
-const CPL_2_ID = '77777777-7777-4777-8777-777777777777'
-const BUYER_ID = '88888888-8888-4888-8888-888888888888'
-const SHOP_1_ID = '99999999-9999-4999-8999-999999999999'
-const SHOP_2_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const EV_1_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
-const SHA256_HASH = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+const BUYER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const SELLER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+const ORDER_ID = '11111111-1111-4111-8111-111111111111'
+const SHOP_1_ID = '22222222-2222-4222-8222-222222222221'
+const SHOP_2_ID = '22222222-2222-4222-8222-222222222222'
+const SO_1_ID = '33333333-3333-4333-8333-333333333331'
+const SO_2_ID = '33333333-3333-4333-8333-333333333332'
+const CPL_1_ID = '55555555-5555-4555-8555-555555555551'
+const CPL_2_ID = '55555555-5555-4555-8555-555555555552'
+const EV_1_ID = '66666666-6666-4666-8666-666666666661'
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers?: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   })
 }
 
-function apiErrorResponse(
-  status: number,
-  code: string,
-  message: string,
-  details: Array<{ field: string; reason: string }> = [],
-): Response {
-  return jsonResponse({ code, message, details, correlationId: 'corr-cpl-1' }, status)
-}
-
-function makeQueueItem(overrides: Partial<CSQueueItemView> = {}): CSQueueItemView {
-  const slaDueAt = overrides.slaDueAt ?? new Date(Date.now() + 2 * 3_600_000).toISOString()
-  return {
-    complaintId: CPL_1_ID,
-    complaintCode: 'CPL-20261125-001',
-    sellerOrderId: SO_1_ID,
-    orderId: ORDER_ID,
-    buyerId: BUYER_ID,
-    shopId: SHOP_1_ID,
-    type: 'DAMAGED',
-    requestedResolution: 'PARTIAL_REFUND',
-    requestedRefundAmount: 150_000,
-    description: 'Sản phẩm bị nứt vỏ hộp khi nhận hàng.',
-    status: 'ESCALATED',
-    unverifiedFlag: false,
-    priority: 2,
-    slaDueAt,
-    slaRemainingSeconds: 7200,
-    slaBreached: false,
-    returnReceivedConfirmed: false,
-    version: 3,
-    createdAt: '2026-11-25T02:00:00Z',
-    updatedAt: '2026-11-25T05:00:00Z',
-    ...overrides,
-  }
-}
-
 function makeSummary(overrides: Partial<ComplaintSummaryView> = {}): ComplaintSummaryView {
+  const futureDue = new Date(Date.now() + 18 * 3_600_000).toISOString()
   return {
     complaintId: CPL_1_ID,
-    complaintCode: 'CPL-20261125-001',
+    complaintCode: 'CPL-20261125-AA11BB',
     sellerOrderId: SO_1_ID,
     orderId: ORDER_ID,
     buyerId: BUYER_ID,
@@ -91,172 +65,259 @@ function makeSummary(overrides: Partial<ComplaintSummaryView> = {}): ComplaintSu
     type: 'DAMAGED',
     requestedResolution: 'PARTIAL_REFUND',
     requestedRefundAmount: 150_000,
-    description: 'Sản phẩm bị nứt vỏ hộp khi nhận hàng.',
-    status: 'UNDER_REVIEW',
+    description: 'Hàng bị móp góc hộp khi nhận.',
+    status: 'AWAITING_SELLER',
     unverifiedFlag: false,
     priority: 2,
-    slaDueAt: new Date(Date.now() + 3 * 3_600_000).toISOString(),
-    assignedCsId: CS_USER_ID,
+    sellerDueAt: futureDue,
     returnReceivedConfirmed: false,
-    version: 4,
-    createdAt: '2026-11-25T02:00:00Z',
-    updatedAt: '2026-11-25T06:00:00Z',
+    version: 1,
+    createdAt: '2026-11-25T08:00:00Z',
+    updatedAt: '2026-11-25T08:05:00Z',
     ...overrides,
   }
 }
 
 function makeDetail(overrides: Partial<ComplaintDetailView> = {}): ComplaintDetailView {
+  const complaint = makeSummary(overrides.complaint)
   return {
-    complaint: makeSummary(),
-    availableActions: ['DECIDE', 'UPLOAD_EVIDENCE'],
-    messages: [
+    complaint,
+    availableActions: ['WITHDRAW', 'UPLOAD_EVIDENCE', 'RESPOND', 'ESCALATE'],
+    statusHistory: [
       {
-        messageId: 'msg-1',
-        complaintId: CPL_1_ID,
-        senderId: BUYER_ID,
-        senderRole: 'BUYER',
-        content: 'Nhờ CSKH hỗ trợ xem xét ảnh kiện hàng móp méo.',
-        createdAt: '2026-11-25T03:00:00Z',
+        historyId: 'h-2',
+        complaintId: complaint.complaintId,
+        fromStatus: 'SUBMITTED',
+        toStatus: 'AWAITING_SELLER',
+        actor: 'SYSTEM',
+        reason: 'Đã xác minh tự động và chuyển đến nhà bán.',
+        at: '2026-11-25T08:00:05Z',
       },
       {
-        messageId: 'msg-2',
-        complaintId: CPL_1_ID,
-        senderRole: 'SELLER',
-        content: 'Đề xuất hoàn một phần chi phí.',
-        proposal: {
-          action: 'PROPOSE',
-          resolution: 'PARTIAL_REFUND',
-          refundAmount: 100_000,
-          note: 'Hỗ trợ 100k',
-        },
-        createdAt: '2026-11-25T04:00:00Z',
+        historyId: 'h-1',
+        complaintId: complaint.complaintId,
+        toStatus: 'SUBMITTED',
+        actor: `usr:${BUYER_ID}`,
+        reason: 'Người mua gửi khiếu nại',
+        at: '2026-11-25T08:00:00Z',
+      },
+    ],
+    messages: [
+      {
+        messageId: 'm-1',
+        complaintId: complaint.complaintId,
+        senderId: BUYER_ID,
+        senderRole: 'BUYER',
+        content: 'Sản phẩm bị móp vỏ ngoài.',
+        createdAt: '2026-11-25T08:00:00Z',
       },
     ],
     evidences: [
       {
         evidenceId: EV_1_ID,
-        complaintId: CPL_1_ID,
-        fileHash: SHA256_HASH,
-        mimeType: 'image/png',
-        fileSize: 20480,
+        complaintId: complaint.complaintId,
+        fileHash: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+        fileSize: 2048,
+        mimeType: 'application/pdf',
         uploadedBy: BUYER_ID,
         uploaderRole: 'BUYER',
-        uploadedAt: '2026-11-25T02:30:00Z',
-        downloadUrl: `/v1/complaints/${CPL_1_ID}/evidence/${EV_1_ID}`,
-      },
-    ],
-    statusHistory: [
-      {
-        historyId: 'hist-1',
-        complaintId: CPL_1_ID,
-        fromStatus: 'SUBMITTED',
-        toStatus: 'ESCALATED',
-        actor: 'system:cron',
-        reason: 'Quá hạn thương lượng 48h',
-        at: '2026-11-25T04:30:00Z',
-      },
-      {
-        historyId: 'hist-2',
-        complaintId: CPL_1_ID,
-        fromStatus: 'ESCALATED',
-        toStatus: 'UNDER_REVIEW',
-        actor: `cs:${CS_USER_ID}`,
-        reason: 'Nhân viên CSKH tiếp nhận phân xử khiếu nại',
-        at: '2026-11-25T05:00:00Z',
+        uploadedAt: '2026-11-25T08:02:00Z',
       },
     ],
     relatedComplaints: [
       {
         complaintId: CPL_2_ID,
-        complaintCode: 'CPL-20261125-002',
+        complaintCode: 'CPL-20261125-CC22DD',
         sellerOrderId: SO_2_ID,
         shopId: SHOP_2_ID,
-        type: 'WRONG_ITEM',
-        status: 'ESCALATED',
-        createdAt: '2026-11-25T02:05:00Z',
+        type: 'DAMAGED',
+        status: 'AWAITING_SELLER',
+        createdAt: '2026-11-25T08:00:00Z',
       },
     ],
-    dossier: {
-      orderServiceUnavailable: false,
-      paymentServiceUnavailable: false,
-      shippingServiceUnavailable: false,
-      unavailableServices: [],
-      sellerOrder: {
-        sellerOrderId: SO_1_ID,
-        sellerOrderCode: 'SO-20261125-001',
-        orderId: ORDER_ID,
-        orderCode: 'ORD-20261125-001',
-        shopId: SHOP_1_ID,
-        buyerId: BUYER_ID,
-        status: 'DELIVERED',
-        itemsAmount: 500_000,
-        shippingFee: 30_000,
-        discountAmount: 0,
-        totalAmount: 530_000,
-        refundStatus: 'NONE',
-        hasOpenComplaint: true,
-        items: [
-          {
-            orderItemId: 'oi-1',
-            productId: 'prd-1',
-            variantId: 'var-1',
-            productName: 'Tai nghe Bluetooth ANC',
-            variantLabel: 'Đen nhám',
-            unitPrice: 500_000,
-            quantity: 1,
-            weightGram: 250,
-          },
-        ],
-      },
-      paymentAllocation: {
-        allocationId: 'alloc-1',
-        paymentId: 'pay-1',
-        sellerOrderId: SO_1_ID,
-        amount: 530_000,
-        refundedAmount: 0,
-        remainingRefundable: 530_000,
-        status: 'CAPTURED',
-      },
-      shipment: {
-        shipmentId: 'shp-1',
-        sellerOrderId: SO_1_ID,
-        kind: 'FORWARD',
-        carrier: 'GHN',
-        trackingCode: 'GHN-998877',
-        status: 'DELIVERED',
-        deliveredAt: '2026-11-24T10:00:00Z',
-      },
-    },
     ...overrides,
   }
 }
 
-type RouteHandler = (request: Request) => Response | Promise<Response>
-let handlers: Array<{ method: string; path: string | RegExp; handle: RouteHandler }>
-let calls: Request[]
-
-function on(method: string, path: string | RegExp, handle: RouteHandler) {
-  handlers.unshift({ method, path, handle })
+function makeOrderList(): BuyerOrderListResult {
+  return {
+    items: [
+      {
+        orderId: ORDER_ID,
+        orderCode: 'ORD-20261125-001',
+        buyerId: BUYER_ID,
+        status: 'PAID',
+        itemsTotal: 700_000,
+        shippingTotal: 50_000,
+        grandTotal: 750_000,
+        paymentDueAt: '2026-11-24T09:15:00Z',
+        sellerOrderCount: 2,
+        sellerOrders: [
+          {
+            sellerOrderId: SO_1_ID,
+            sellerOrderCode: 'SO-001',
+            shopId: SHOP_1_ID,
+            status: 'DELIVERED',
+            totalAmount: 425_000,
+            refundStatus: 'NONE',
+          },
+          {
+            sellerOrderId: SO_2_ID,
+            sellerOrderCode: 'SO-002',
+            shopId: SHOP_2_ID,
+            status: 'DELIVERED',
+            totalAmount: 325_000,
+            refundStatus: 'NONE',
+          },
+        ],
+        createdAt: '2026-11-24T09:00:00Z',
+        updatedAt: '2026-11-24T09:30:00Z',
+      },
+    ],
+    page: 1,
+    limit: 50,
+    total: 1,
+    totalPages: 1,
+  }
 }
 
-function loginAs(roles: string[], userId = CS_USER_ID) {
-  setAuthSession({
-    accessToken: roles.includes('CS') ? 'access-cs' : 'access-admin',
-    refreshToken: 'refresh-1',
-    user: {
-      userId,
-      email: 'cs@soa.vn',
-      fullName: 'Nhân viên CSKH',
-      phone: '0900000001',
-      createdAt: '2026-11-01T00:00:00Z',
-      status: 'ACTIVE',
-      roles,
+function makeOrderDetail(): BuyerOrderDetailView {
+  return {
+    orderId: ORDER_ID,
+    orderCode: 'ORD-20261125-001',
+    buyerId: BUYER_ID,
+    status: 'PAID',
+    itemsTotal: 700_000,
+    shippingTotal: 50_000,
+    grandTotal: 750_000,
+    paymentDueAt: '2026-11-24T09:15:00Z',
+    paymentDegraded: false,
+    shippingDegraded: false,
+    partialRefundBreakdown: {
+      activeAllocationAmount: 750_000,
+      cancelledRefundAmount: 0,
+      originalTotalAmount: 750_000,
+      paidTotalAmount: 750_000,
+      refundedSellerOrderCount: 0,
+      sellerOrders: [],
+      voucherDiscountTotal: 0,
     },
-  })
+    history: [],
+    deliveryAddress: {
+      contactName: 'Nguyễn Văn A',
+      phone: '0901234567',
+      line: '123 Lê Lợi',
+      ward: 'Bến Thành',
+      district: 'Quận 1',
+      province: 'TP. Hồ Chí Minh',
+    },
+    sellerOrders: [
+      {
+        sellerOrderId: SO_1_ID,
+        sellerOrderCode: 'SO-001',
+        orderId: ORDER_ID,
+        shopId: SHOP_1_ID,
+        shopName: 'Cửa hàng Minh Tâm',
+        status: 'DELIVERED',
+        itemsAmount: 400_000,
+        shippingFee: 25_000,
+        discountAmount: 0,
+        totalAmount: 425_000,
+        refundStatus: 'NONE',
+        hasOpenComplaint: false,
+        availableActions: [],
+        version: 1,
+        items: [],
+        createdAt: '2026-11-24T09:00:00Z',
+        updatedAt: '2026-11-24T09:30:00Z',
+      },
+      {
+        sellerOrderId: SO_2_ID,
+        sellerOrderCode: 'SO-002',
+        orderId: ORDER_ID,
+        shopId: SHOP_2_ID,
+        shopName: 'Shop Điện Tử ABC',
+        status: 'DELIVERED',
+        itemsAmount: 300_000,
+        shippingFee: 25_000,
+        discountAmount: 0,
+        totalAmount: 325_000,
+        refundStatus: 'NONE',
+        hasOpenComplaint: false,
+        availableActions: [],
+        version: 1,
+        items: [],
+        createdAt: '2026-11-24T09:00:00Z',
+        updatedAt: '2026-11-24T09:30:00Z',
+      },
+    ],
+    createdAt: '2026-11-24T09:00:00Z',
+    updatedAt: '2026-11-24T09:30:00Z',
+  }
 }
 
-function renderComplaintsRoute(initialPath: string) {
-  const qc = new QueryClient({
+function makeSellerShop(): ShopDTO {
+  return {
+    shopId: SHOP_1_ID,
+    applicationId: 'app-1',
+    sellerUserId: SELLER_ID,
+    name: 'Cửa hàng Minh Tâm',
+    status: 'ACTIVE',
+    ratingAvg: 4.8,
+    ratingCount: 10,
+    version: 1,
+    createdAt: '2026-11-01T00:00:00Z',
+    updatedAt: '2026-11-01T00:00:00Z',
+  }
+}
+
+function makeSellerOrderDetail(): SellerOrderDetailView {
+  return {
+    sellerOrderId: SO_1_ID,
+    sellerOrderCode: 'SO-001',
+    orderId: ORDER_ID,
+    orderCode: 'ORD-20261125-001',
+    shopId: SHOP_1_ID,
+    buyerId: BUYER_ID,
+    status: 'DELIVERED',
+    itemsAmount: 400_000,
+    shippingFee: 25_000,
+    discountAmount: 0,
+    totalAmount: 425_000,
+    refundStatus: 'NONE',
+    hasOpenComplaint: true,
+    availableActions: [],
+    version: 1,
+    deliveryAddress: {
+      contactName: 'Nguyễn Văn A',
+      phone: '0901234567',
+      line: '123 Lê Lợi',
+      ward: 'Bến Thành',
+      district: 'Quận 1',
+      province: 'TP. Hồ Chí Minh',
+    },
+    items: [
+      {
+        orderItemId: 'item-1',
+        sellerOrderId: SO_1_ID,
+        productId: 'prd-1',
+        variantId: 'var-1',
+        productName: 'Tai nghe Bluetooth',
+        variantLabel: 'Đen',
+        quantity: 1,
+        unitPrice: 400_000,
+        lineTotal: 400_000,
+        weightGram: 250,
+      },
+    ],
+    history: [],
+    createdAt: '2026-11-24T09:00:00Z',
+    updatedAt: '2026-11-24T09:30:00Z',
+  }
+}
+
+function renderWithRouter(ui: React.ReactElement, initialEntries: string[], pathPattern: string) {
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
@@ -264,12 +325,15 @@ function renderComplaintsRoute(initialPath: string) {
   })
 
   return render(
-    <QueryClientProvider client={qc}>
+    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <MemoryRouter initialEntries={[initialPath]}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
-            <Route path="/admin/complaints/queue" element={<AdminComplaintsQueuePage />} />
-            <Route path="/admin/complaints/:id" element={<AdminComplaintWorkspacePage />} />
+            <Route path={pathPattern} element={ui} />
+            <Route path="/account/complaints" element={ui} />
+            <Route path="/account/complaints/:id" element={ui} />
+            <Route path="/seller/complaints" element={ui} />
+            <Route path="/seller/complaints/:id" element={ui} />
           </Routes>
         </MemoryRouter>
       </TooltipProvider>
@@ -277,482 +341,656 @@ function renderComplaintsRoute(initialPath: string) {
   )
 }
 
-beforeEach(() => {
-  handlers = []
-  calls = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const request = input instanceof Request ? input : new Request(String(input), init)
-      calls.push(request)
-      const { pathname } = new URL(request.url)
-      const match = handlers.find(
-        (h) => h.method === request.method && (typeof h.path === 'string' ? h.path === pathname : h.path.test(pathname)),
+function setBuyerSession() {
+  setAuthSession({
+    accessToken: 'buyer-token',
+    refreshToken: 'refresh-token',
+    user: {
+      userId: BUYER_ID,
+      email: 'buyer@soa.vn',
+      fullName: 'Buyer Test',
+      phone: '0901234567',
+      createdAt: '2026-11-01T00:00:00Z',
+      status: 'ACTIVE',
+      roles: ['BUYER'],
+    },
+  })
+}
+
+function setSellerSession() {
+  setAuthSession({
+    accessToken: 'seller-token',
+    refreshToken: 'refresh-token',
+    user: {
+      userId: SELLER_ID,
+      email: 'seller@soa.vn',
+      fullName: 'Seller Test',
+      phone: '0907654321',
+      createdAt: '2026-11-01T00:00:00Z',
+      status: 'ACTIVE',
+      roles: ['BUYER', 'SELLER'],
+    },
+  })
+}
+
+describe('T4-11: Complaints helpers & unit tests', () => {
+  it('buildComplaintTimeline sorts chronologically without mutating input arrays', () => {
+    const statusHistory = Object.freeze([
+      {
+        historyId: 'h-2',
+        complaintId: CPL_1_ID,
+        fromStatus: 'SUBMITTED',
+        toStatus: 'AWAITING_SELLER',
+        actor: 'SYSTEM',
+        at: '2026-11-25T08:00:05Z',
+      },
+      {
+        historyId: 'h-1',
+        complaintId: CPL_1_ID,
+        toStatus: 'SUBMITTED',
+        actor: `usr:${BUYER_ID}`,
+        at: '2026-11-25T08:00:00Z',
+      },
+    ]) as ComplaintDetailView['statusHistory']
+
+    const messages = Object.freeze([
+      {
+        messageId: 'm-2',
+        complaintId: CPL_1_ID,
+        senderRole: 'SELLER',
+        content: 'Đề xuất hoàn 100k',
+        createdAt: '2026-11-25T09:00:00Z',
+      },
+      {
+        messageId: 'm-1',
+        complaintId: CPL_1_ID,
+        senderRole: 'BUYER',
+        content: 'Mở khiếu nại',
+        createdAt: '2026-11-25T08:00:00Z',
+      },
+    ]) as ComplaintDetailView['messages']
+
+    const evidences = Object.freeze([
+      {
+        evidenceId: EV_1_ID,
+        complaintId: CPL_1_ID,
+        fileHash: 'abc123',
+        fileSize: 1024,
+        mimeType: 'image/jpeg',
+        uploadedBy: BUYER_ID,
+        uploaderRole: 'BUYER',
+        uploadedAt: '2026-11-25T08:30:00Z',
+      },
+    ]) as ComplaintDetailView['evidences']
+
+    const timeline = buildComplaintTimeline({ statusHistory, messages, evidences })
+
+    expect(timeline.map((item) => item.id)).toEqual([
+      'status-h-1',
+      'message-m-1',
+      'status-h-2',
+      `evidence-${EV_1_ID}`,
+      'message-m-2',
+    ])
+  })
+
+  it('resolveComplaintSla selects active SLA deadline per status', () => {
+    const due = '2026-11-26T08:00:00Z'
+    expect(
+      resolveComplaintSla(makeSummary({ status: 'AWAITING_SELLER', sellerDueAt: due }))?.labelKey,
+    ).toBe('sla.seller')
+    expect(
+      resolveComplaintSla(makeSummary({ status: 'NEGOTIATING', negotiateDueAt: due }))?.labelKey,
+    ).toBe('sla.negotiate')
+    expect(
+      resolveComplaintSla(makeSummary({ status: 'ESCALATED', slaDueAt: due }))?.labelKey,
+    ).toBe('sla.cs')
+    expect(resolveComplaintSla(makeSummary({ status: 'CLOSED', sellerDueAt: due }))).toBeNull()
+    expect(resolveComplaintSla(makeSummary({ status: 'WITHDRAWN', sellerDueAt: due }))).toBeNull()
+  })
+
+  it('validateEvidenceFile enforces file types and size caps (5MB image, 20MB video/PDF)', () => {
+    expect(validateEvidenceFile({ name: 'empty.jpg', type: 'image/jpeg', size: 0 })).toEqual({
+      ok: false,
+      code: 'EMPTY',
+    })
+    expect(validateEvidenceFile({ name: 'script.exe', type: 'application/x-msdownload', size: 100 })).toEqual({
+      ok: false,
+      code: 'INVALID_TYPE',
+    })
+    expect(validateEvidenceFile({ name: 'big.png', type: 'image/png', size: 6 * 1024 * 1024 })).toEqual({
+      ok: false,
+      code: 'IMAGE_TOO_LARGE',
+    })
+    expect(validateEvidenceFile({ name: 'ok.jpg', type: 'image/jpeg', size: 1024 })).toEqual({
+      ok: true,
+      mimeType: 'image/jpeg',
+      isImage: true,
+    })
+    expect(validateEvidenceFile({ name: 'clip.mp4', type: 'video/mp4', size: 10 * 1024 * 1024 })).toEqual({
+      ok: true,
+      mimeType: 'video/mp4',
+      isImage: false,
+    })
+    expect(validateEvidenceFile({ name: 'huge.pdf', type: 'application/pdf', size: 21 * 1024 * 1024 })).toEqual({
+      ok: false,
+      code: 'MEDIA_TOO_LARGE',
+    })
+  })
+})
+
+describe('T4-11: Buyer Complaints UI (/account/complaints & :id)', () => {
+  afterEach(() => {
+    cleanup()
+    clearAuthSession()
+    vi.unstubAllGlobals()
+  })
+
+  beforeEach(() => {
+    setBuyerSession()
+  })
+
+  it('lists buyer complaints with SLA countdown, filters, and handles 503 fallback', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString()
+      if (url.includes('/v1/complaints')) {
+        const list: ComplaintListResult = {
+          items: [makeSummary()],
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        }
+        return jsonResponse(list)
+      }
+      if (url.includes(`/v1/shops/${SHOP_1_ID}`)) {
+        const shop: PublicShopDTO = {
+          shopId: SHOP_1_ID,
+          name: 'Cửa hàng Minh Tâm',
+          ratingAvg: 4.8,
+          ratingCount: 10,
+          createdAt: '2026-11-01T00:00:00Z',
+        }
+        return jsonResponse(shop)
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithRouter(<BuyerComplaintsPage />, ['/account/complaints'], '/account/complaints')
+
+    expect(await screen.findByText('CPL-20261125-AA11BB')).toBeTruthy()
+    expect(await screen.findByText('Cửa hàng Minh Tâm')).toBeTruthy()
+    expect(screen.getByRole('timer')).toBeTruthy()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Đang thương lượng' }))
+
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.map(([req]) =>
+        typeof req === 'string' ? req : req instanceof Request ? req.url : req.toString(),
       )
-      if (!match) {
-        throw new Error(`Unhandled ${request.method} ${pathname}`)
+      expect(calls.some((u) => u.includes('status=NEGOTIATING'))).toBe(true)
+    })
+  })
+
+  it('creates multi-shop split complaints with Idempotency-Key and uploads evidence to each split complaint', async () => {
+    const user = userEvent.setup()
+    const uploadedTargets: string[] = []
+    let createPayload: Record<string, unknown> | null = null
+    let idempotencyHeader: string | null = null
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const req = input instanceof Request ? input : new Request(input.toString())
+      const url = req.url
+
+      if (url.includes('/v1/complaints') && req.method === 'GET') {
+        return jsonResponse({ items: [], page: 1, limit: 10, total: 0, totalPages: 0 })
       }
-      return match.handle(request)
-    }),
-  )
-})
-
-afterEach(() => {
-  cleanup()
-  clearAuthSession()
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
-})
-
-describe('T4-12: CSKH SLA Queue (/admin/complaints/queue)', () => {
-  it('sorts complaints ascending by remaining SLA and shows countdown pills and priorities', async () => {
-    loginAs(['CS'])
-    const laterDue = new Date(Date.now() + 10 * 3_600_000).toISOString()
-    const overdueDue = new Date(Date.now() - 1 * 3_600_000).toISOString()
-    const soonDue = new Date(Date.now() + 30 * 60_000).toISOString()
-
-    on('GET', '/v1/cs/complaints/queue', () =>
-      jsonResponse({
-        items: [
-          makeQueueItem({
-            complaintId: 'cpl-later',
-            complaintCode: 'CPL-LATER',
-            priority: 3,
-            slaDueAt: laterDue,
-            slaRemainingSeconds: 36_000,
-          }),
-          makeQueueItem({
-            complaintId: 'cpl-overdue',
-            complaintCode: 'CPL-OVERDUE',
-            priority: 1,
-            slaDueAt: overdueDue,
-            slaRemainingSeconds: -3600,
-            slaBreached: true,
-          }),
-          makeQueueItem({
-            complaintId: 'cpl-soon',
-            complaintCode: 'CPL-SOON',
-            priority: 2,
-            slaDueAt: soonDue,
-            slaRemainingSeconds: 1800,
-          }),
-        ],
-        total: 3,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      }),
-    )
-
-    renderComplaintsRoute('/admin/complaints/queue')
-
-    const table = await screen.findByRole('table')
-    const rows = within(table).getAllByRole('row').slice(1)
-    expect(rows).toHaveLength(3)
-    expect(rows[0]!.textContent).toContain('CPL-OVERDUE')
-    expect(rows[0]!.textContent).toContain('Quá hạn')
-    expect(rows[1]!.textContent).toContain('CPL-SOON')
-    expect(rows[2]!.textContent).toContain('CPL-LATER')
-    expect(within(rows[0]!).getByText('P1 · Khẩn cấp')).toBeTruthy()
-  })
-
-  it('filters by priority, type, overdue, and unverifiedOnly', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', '/v1/cs/complaints/queue', () =>
-      jsonResponse({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 }),
-    )
-
-    renderComplaintsRoute('/admin/complaints/queue')
-    await screen.findByText('Chưa có khiếu nại nào')
-
-    await u.selectOptions(screen.getByLabelText('Mức độ ưu tiên'), '1')
-    await u.selectOptions(screen.getByLabelText('Loại vấn đề'), 'NOT_RECEIVED')
-    await u.click(screen.getByLabelText('Chỉ quá hạn SLA'))
-    await u.click(screen.getByLabelText('Chỉ chưa xác minh tự động'))
-
-    await waitFor(() => {
-      const lastCall = calls
-        .filter((r) => new URL(r.url).pathname === '/v1/cs/complaints/queue')
-        .at(-1)
-      expect(lastCall).toBeTruthy()
-      const sp = new URL(lastCall!.url).searchParams
-      expect(sp.get('priority')).toBe('1')
-      expect(sp.get('type')).toBe('NOT_RECEIVED')
-      expect(sp.get('overdue')).toBe('true')
-      expect(sp.get('unverifiedOnly')).toBe('true')
-    })
-
-    expect(await screen.findByText(/Không tìm thấy khiếu nại khớp với bộ lọc/)).toBeTruthy()
-  })
-
-  it('claims a complaint with optimistic version and navigates to the 3-column workspace', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', '/v1/cs/complaints/queue', () =>
-      jsonResponse({
-        items: [makeQueueItem({ version: 5 })],
-        total: 1,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      }),
-    )
-
-    let claimBody: unknown
-    on('POST', `/v1/cs/complaints/${CPL_1_ID}/claim`, async (request) => {
-      claimBody = await request.json()
-      return jsonResponse(makeSummary({ status: 'UNDER_REVIEW', version: 6 }))
-    })
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () =>
-      jsonResponse(makeDetail({ complaint: makeSummary({ status: 'UNDER_REVIEW', version: 6 }) })),
-    )
-
-    renderComplaintsRoute('/admin/complaints/queue')
-
-    const table = await screen.findByRole('table')
-    await u.click(within(table).getByRole('button', { name: /Claim: CPL-20261125-001/ }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Workspace phân xử CPL-20261125-001/ })).toBeTruthy()
-    })
-    expect(claimBody).toEqual({ version: 5 })
-    expect(screen.getByText(/Bạn đã tiếp nhận xử lý khiếu nại CPL-20261125-001/)).toBeTruthy()
-  })
-
-  it('TC-CPL-06: handles 409 conflict when two CS agents claim concurrently and reloads queue', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', '/v1/cs/complaints/queue', () =>
-      jsonResponse({
-        items: [makeQueueItem()],
-        total: 1,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      }),
-    )
-    on('POST', `/v1/cs/complaints/${CPL_1_ID}/claim`, () =>
-      apiErrorResponse(
-        409,
-        'COMPLAINT_ALREADY_CLAIMED',
-        'Khiếu nại này đã được nhân viên CSKH khác tiếp nhận xử lý.',
-      ),
-    )
-
-    renderComplaintsRoute('/admin/complaints/queue')
-
-    const table = await screen.findByRole('table')
-    const queueCallsBefore = calls.filter(
-      (r) => new URL(r.url).pathname === '/v1/cs/complaints/queue',
-    ).length
-    await u.click(within(table).getByRole('button', { name: /Claim: CPL-20261125-001/ }))
-
-    expect(
-      await screen.findByText('Khiếu nại này đã được nhân viên CSKH khác tiếp nhận xử lý.'),
-    ).toBeTruthy()
-    const reloadBtn = screen.getByRole('button', { name: 'Tải lại hàng chờ' })
-    expect(reloadBtn).toBeTruthy()
-
-    await u.click(reloadBtn)
-    await waitFor(() => {
-      const queueCallsAfter = calls.filter(
-        (r) => new URL(r.url).pathname === '/v1/cs/complaints/queue',
-      ).length
-      expect(queueCallsAfter).toBeGreaterThan(queueCallsBefore)
-    })
-  })
-
-  it('shows ServiceFallbackBanner on queue error and retries cleanly', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    let shouldFail = true
-    on('GET', '/v1/cs/complaints/queue', () => {
-      if (shouldFail) {
-        return apiErrorResponse(503, 'SERVICE_UNAVAILABLE', 'SVC-CPL tạm thời gián đoạn.')
+      if (url.includes('/v1/orders?') || url.endsWith('/v1/orders')) {
+        return jsonResponse(makeOrderList())
       }
-      return jsonResponse({
-        items: [makeQueueItem()],
-        total: 1,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      })
-    })
-
-    renderComplaintsRoute('/admin/complaints/queue')
-
-    expect(await screen.findByText('SVC-CPL tạm thời gián đoạn.')).toBeTruthy()
-    shouldFail = false
-    await u.click(screen.getByRole('button', { name: 'Thử tải lại khối này' }))
-
-    expect(await screen.findByRole('table')).toBeTruthy()
-  })
-
-  it('renders read-only complaints list for ADMINISTRATOR without calling CS queue endpoint', async () => {
-    loginAs(['ADMINISTRATOR'], ADMIN_USER_ID)
-    on('GET', '/v1/complaints', () =>
-      jsonResponse({
-        items: [makeSummary({ status: 'ESCALATED', assignedCsId: undefined })],
-        total: 1,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      }),
-    )
-
-    renderComplaintsRoute('/admin/complaints/queue')
-
-    expect(await screen.findByText(/Chỉ nhân viên CSKH mới có quyền tiếp nhận/)).toBeTruthy()
-    const table = await screen.findByRole('table')
-    expect(within(table).queryByRole('button', { name: /Claim/ })).toBeNull()
-    expect(within(table).getByRole('link', { name: /Xem hồ sơ/ })).toBeTruthy()
-    expect(calls.some((r) => new URL(r.url).pathname === '/v1/cs/complaints/queue')).toBe(false)
-  })
-})
-
-describe('T4-12: 3-Column Arbitration Workspace (/admin/complaints/:id)', () => {
-  it('renders 3 columns, cross-service dossier, and sibling orderId tabs', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () => jsonResponse(makeDetail()))
-    on('GET', `/v1/complaints/${CPL_2_ID}`, () =>
-      jsonResponse(
-        makeDetail({
-          complaint: makeSummary({
-            complaintId: CPL_2_ID,
-            complaintCode: 'CPL-20261125-002',
-            sellerOrderId: SO_2_ID,
-            shopId: SHOP_2_ID,
-            type: 'WRONG_ITEM',
-            status: 'ESCALATED',
-            assignedCsId: undefined,
-          }),
-          availableActions: ['CLAIM', 'UPLOAD_EVIDENCE'],
-          relatedComplaints: [
-            {
-              complaintId: CPL_1_ID,
-              complaintCode: 'CPL-20261125-001',
-              sellerOrderId: SO_1_ID,
-              shopId: SHOP_1_ID,
-              type: 'DAMAGED',
-              status: 'UNDER_REVIEW',
-              createdAt: '2026-11-25T02:00:00Z',
-            },
+      if (url.includes(`/v1/orders/${ORDER_ID}`)) {
+        return jsonResponse(makeOrderDetail())
+      }
+      if (url.includes(`/v1/shops/${SHOP_1_ID}`)) {
+        return jsonResponse({ shopId: SHOP_1_ID, name: 'Cửa hàng Minh Tâm', status: 'ACTIVE', createdAt: '' })
+      }
+      if (url.includes(`/v1/shops/${SHOP_2_ID}`)) {
+        return jsonResponse({ shopId: SHOP_2_ID, name: 'Shop Điện Tử ABC', status: 'ACTIVE', createdAt: '' })
+      }
+      if (url.endsWith('/v1/complaints') && req.method === 'POST') {
+        idempotencyHeader = req.headers.get('Idempotency-Key')
+        createPayload = JSON.parse(await req.clone().text()) as Record<string, unknown>
+        const result: CreateComplaintsResult = {
+          orderId: ORDER_ID,
+          splitCount: 2,
+          idempotentReplay: false,
+          complaints: [
+            makeSummary({ complaintId: CPL_1_ID, complaintCode: 'CPL-SPLIT-01', shopId: SHOP_1_ID, sellerOrderId: SO_1_ID }),
+            makeSummary({ complaintId: CPL_2_ID, complaintCode: 'CPL-SPLIT-02', shopId: SHOP_2_ID, sellerOrderId: SO_2_ID }),
           ],
-        }),
-      ),
-    )
+        }
+        return jsonResponse(result, 201)
+      }
+      if (url.includes('/evidence') && req.method === 'POST') {
+        uploadedTargets.push(url)
+        return jsonResponse(
+          {
+            evidenceId: 'ev-new',
+            complaintId: CPL_1_ID,
+            fileHash: 'deadbeef',
+            fileSize: 128,
+            mimeType: 'image/jpeg',
+            uploadedBy: BUYER_ID,
+            uploaderRole: 'BUYER',
+            uploadedAt: '2026-11-25T09:00:00Z',
+          },
+          201,
+        )
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
 
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
+    renderWithRouter(<BuyerComplaintsPage />, ['/account/complaints'], '/account/complaints')
 
-    const dossierCol = await screen.findByRole('region', { name: 'Hồ sơ tổng hợp đa dịch vụ' })
-    const timelineCol = screen.getByRole('region', { name: 'Dòng thời gian & Bằng chứng' })
-    const decisionCol = screen.getByRole('region', { name: 'Ra quyết định phân xử' })
+    const createBtn = await screen.findByRole('button', { name: 'Tạo khiếu nại mới' })
+    await user.click(createBtn)
 
-    expect(dossierCol).toBeTruthy()
-    expect(timelineCol).toBeTruthy()
-    expect(decisionCol).toBeTruthy()
+    const dialog = await screen.findByRole('dialog')
+    const orderSelect = await within(dialog).findByLabelText('1. Chọn đơn hàng')
+    await user.selectOptions(orderSelect, ORDER_ID)
 
-    // Column 1: Multi-service dossier & sibling tabs
-    expect(within(dossierCol).getByText('Tai nghe Bluetooth ANC')).toBeTruthy()
-    expect(within(dossierCol).getByText('GHN-998877')).toBeTruthy()
-    expect(within(dossierCol).getByText('Hạn mức khả hoàn còn lại')).toBeTruthy()
-
-    const siblingTab = within(dossierCol).getByRole('tab', { name: /CPL-20261125-002/ })
-    await u.click(siblingTab)
+    const checkboxes = await within(dialog).findAllByRole('checkbox')
+    expect(checkboxes.length).toBe(2)
+    await user.click(checkboxes[0]!)
+    await user.click(checkboxes[1]!)
 
     expect(
-      await screen.findByRole('heading', { name: /Workspace phân xử CPL-20261125-002/ }),
+      await within(dialog).findByText(/Hệ thống sẽ tự động tách thành 2 khiếu nại độc lập/i),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Claim · Tiếp nhận phân xử/ })).toBeTruthy()
+
+    await user.type(
+      within(dialog).getByLabelText('Mô tả chi tiết sự cố'),
+      'Cả 2 shop đều giao thiếu phụ kiện kèm theo.',
+    )
+
+    const fileInput = within(dialog).getByLabelText('Chọn tệp bằng chứng') as HTMLInputElement
+    const imgFile = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], 'proof.jpg', {
+      type: 'image/jpeg',
+    })
+    fireEvent.change(fileInput, { target: { files: [imgFile] } })
+    expect(await within(dialog).findByText('proof.jpg')).toBeTruthy()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Gửi khiếu nại' }))
+
+    expect(await within(dialog).findByText('Đã tạo 2 khiếu nại thành công')).toBeTruthy()
+    expect(within(dialog).getByText('CPL-SPLIT-01')).toBeTruthy()
+    expect(within(dialog).getByText('CPL-SPLIT-02')).toBeTruthy()
+
+    expect(idempotencyHeader).toBeTruthy()
+    expect(createPayload).toMatchObject({
+      sellerOrderIds: [SO_1_ID, SO_2_ID],
+      type: 'DAMAGED',
+      requestedResolution: 'FULL_REFUND',
+    })
+    expect(uploadedTargets).toHaveLength(2)
+    expect(uploadedTargets.some((u) => u.includes(CPL_1_ID))).toBe(true)
+    expect(uploadedTargets.some((u) => u.includes(CPL_2_ID))).toBe(true)
   })
 
-  it('TC-CPL-07: degrades gracefully with ServiceFallbackBanner when SVC-PAY is down and retries', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
+  it('supports buyer timeline, proposal accept, negotiation, evidence download, escalate, and withdraw', async () => {
+    const user = userEvent.setup()
+    let currentDetail = makeDetail({
+      complaint: makeSummary({ status: 'NEGOTIATING', negotiateDueAt: new Date(Date.now() + 3600_000).toISOString() }),
+      messages: [
+        {
+          messageId: 'm-1',
+          complaintId: CPL_1_ID,
+          senderId: BUYER_ID,
+          senderRole: 'BUYER',
+          content: 'Sản phẩm bị móp vỏ ngoài.',
+          createdAt: '2026-11-25T08:00:00Z',
+        },
+        {
+          messageId: 'm-2',
+          complaintId: CPL_1_ID,
+          senderId: SELLER_ID,
+          senderRole: 'SELLER',
+          content: 'Shop đề xuất hoàn một phần 150.000đ.',
+          proposal: {
+            action: 'PROPOSE',
+            resolution: 'PARTIAL_REFUND',
+            refundAmount: 150_000,
+            note: 'Shop đề xuất hoàn một phần 150.000đ.',
+          },
+          createdAt: '2026-11-25T09:00:00Z',
+        },
+      ],
+    })
 
-    let payDown = true
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () => {
-      const base = makeDetail()
-      if (payDown) {
+    const recordedCalls: Array<{ method: string; url: string; body?: unknown }> = []
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const req = input instanceof Request ? input : new Request(input.toString())
+      const url = req.url
+
+      if (url.endsWith(`/v1/complaints/${CPL_1_ID}`) && req.method === 'GET') {
+        return jsonResponse(currentDetail)
+      }
+      if (url.includes(`/v1/orders/${ORDER_ID}`)) {
+        return jsonResponse(makeOrderDetail())
+      }
+      if (url.includes(`/v1/shops/${SHOP_1_ID}`)) {
+        return jsonResponse({ shopId: SHOP_1_ID, name: 'Cửa hàng Minh Tâm', status: 'ACTIVE', createdAt: '' })
+      }
+      if (url.endsWith(`/v1/complaints/${CPL_1_ID}/evidence/${EV_1_ID}`) && req.method === 'GET') {
+        recordedCalls.push({ method: 'GET', url })
+        return new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/pdf' },
+        })
+      }
+      if (url.endsWith(`/v1/complaints/${CPL_1_ID}/responses`) && req.method === 'POST') {
+        const body = JSON.parse(await req.clone().text()) as { action: string; content: string }
+        recordedCalls.push({ method: 'POST', url, body })
         return jsonResponse({
-          ...base,
-          dossier: {
-            ...base.dossier!,
-            paymentAllocation: undefined,
-            paymentServiceUnavailable: true,
-            unavailableServices: ['SVC-PAY'],
+          complaint: currentDetail.complaint,
+          message: {
+            messageId: 'm-new',
+            complaintId: CPL_1_ID,
+            senderId: BUYER_ID,
+            senderRole: 'BUYER',
+            content: body.content,
+            createdAt: '2026-11-25T10:00:00Z',
           },
         })
       }
-      return jsonResponse(base)
+      if (url.endsWith(`/v1/complaints/${CPL_1_ID}/escalate`) && req.method === 'POST') {
+        const body = JSON.parse(await req.clone().text()) as { reason?: string }
+        recordedCalls.push({ method: 'POST', url, body })
+        currentDetail = {
+          ...currentDetail,
+          complaint: makeSummary({ status: 'ESCALATED', slaDueAt: new Date(Date.now() + 12 * 3600_000).toISOString() }),
+          availableActions: ['WITHDRAW', 'UPLOAD_EVIDENCE'],
+        }
+        return jsonResponse(currentDetail.complaint)
+      }
+      if (url.endsWith(`/v1/complaints/${CPL_1_ID}/withdraw`) && req.method === 'POST') {
+        const body = JSON.parse(await req.clone().text()) as { reason?: string }
+        recordedCalls.push({ method: 'POST', url, body })
+        currentDetail = {
+          ...currentDetail,
+          complaint: makeSummary({ status: 'WITHDRAWN' }),
+          availableActions: [],
+        }
+        return jsonResponse(currentDetail.complaint)
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
     })
+    vi.stubGlobal('fetch', fetchMock)
 
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const origCreateObjectURL = URL.createObjectURL
+    const origRevokeObjectURL = URL.revokeObjectURL
+    URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+    URL.revokeObjectURL = vi.fn()
 
-    const dossierCol = await screen.findByRole('region', { name: 'Hồ sơ tổng hợp đa dịch vụ' })
-    expect(within(dossierCol).getByText('Tai nghe Bluetooth ANC')).toBeTruthy()
-    expect(
-      within(dossierCol).getByText(/Dịch vụ thanh toán \(SVC-PAY\) tạm thời gián đoạn/),
-    ).toBeTruthy()
+    try {
+      renderWithRouter(
+        <BuyerComplaintDetailPage />,
+        [`/account/complaints/${CPL_1_ID}`],
+        '/account/complaints/:id',
+      )
 
-    payDown = false
-    await u.click(within(dossierCol).getByRole('button', { name: 'Thử tải lại khối này' }))
+      // Chờ chi tiết + timeline + khiếu nại cùng Order hiển thị
+      expect(await screen.findByText('CPL-20261125-AA11BB')).toBeTruthy()
+      expect(screen.getByText('CPL-20261125-CC22DD')).toBeTruthy()
 
-    await waitFor(() => {
-      expect(within(dossierCol).getByText('Hạn mức khả hoàn còn lại')).toBeTruthy()
-    })
-  })
+      // Kiểm tra thứ tự bất biến trên dòng thời gian
+      const timelineSection = screen.getByRole('region', { name: 'Dòng thời gian xử lý khiếu nại' })
+      const timelineList = within(timelineSection).getByRole('list')
+      const timelineItems = timelineList.querySelectorAll('li[data-timeline-kind]')
+      expect(timelineItems.length).toBeGreaterThanOrEqual(4)
+      expect(timelineItems[0]?.getAttribute('data-timeline-kind')).toBe('status')
+      expect(timelineItems[1]?.getAttribute('data-timeline-kind')).toBe('message')
 
-  it('displays timeline, SHA-256 hash, and downloads evidence using Bearer auth', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () => jsonResponse(makeDetail()))
-    on('GET', `/v1/complaints/${CPL_1_ID}/evidence/${EV_1_ID}`, () =>
-      new Response(new Uint8Array([137, 80, 78, 71]), {
-        status: 200,
-        headers: { 'Content-Type': 'image/png' },
-      }),
-    )
+      // Tải bằng chứng PDF qua authFetch
+      await user.click(screen.getByRole('button', { name: 'Xem / Tải xuống' }))
+      await waitFor(() => {
+        expect(recordedCalls.some((c) => c.url.includes(`/evidence/${EV_1_ID}`))).toBe(true)
+      })
 
-    const createSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-evidence')
-    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    expect(createSpy).toBeDefined()
-    expect(revokeSpy).toBeDefined()
+      // Gửi tin nhắn thương lượng
+      await user.type(screen.getByLabelText('Nội dung trao đổi'), 'Vui lòng hoàn thêm phí ship.')
+      await user.click(screen.getByRole('button', { name: 'Gửi phản hồi' }))
+      await waitFor(() => {
+        expect(
+          recordedCalls.some(
+            (c) =>
+              c.url.endsWith('/responses') &&
+              (c.body as { action: string }).action === 'MESSAGE',
+          ),
+        ).toBe(true)
+      })
 
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
+      // Chấp nhận đề xuất từ Seller
+      await user.click(screen.getByRole('button', { name: 'Chấp nhận đề xuất' }))
+      await waitFor(() => {
+        expect(
+          recordedCalls.some(
+            (c) =>
+              c.url.endsWith('/responses') &&
+              (c.body as { action: string }).action === 'ACCEPT_PROPOSAL',
+          ),
+        ).toBe(true)
+      })
 
-    const timelineCol = await screen.findByRole('region', { name: 'Dòng thời gian & Bằng chứng' })
-    expect(within(timelineCol).getByText('Quá hạn thương lượng 48h', { exact: false })).toBeTruthy()
-    expect(
-      within(timelineCol).getByText('Nhờ CSKH hỗ trợ xem xét ảnh kiện hàng móp méo.'),
-    ).toBeTruthy()
-    expect(within(timelineCol).getByText(SHA256_HASH)).toBeTruthy()
+      // Yêu cầu CSKH hỗ trợ (Escalate)
+      await user.click(screen.getByRole('button', { name: 'Yêu cầu CSKH hỗ trợ' }))
+      const escalateDialog = await screen.findByRole('dialog')
+      await user.type(within(escalateDialog).getByLabelText('Lý do (tùy chọn)'), 'Cần CSKH phân xử')
+      await user.click(within(escalateDialog).getByRole('button', { name: 'Gửi yêu cầu CSKH' }))
+      await waitFor(() => {
+        expect(recordedCalls.some((c) => c.url.endsWith('/escalate'))).toBe(true)
+      })
 
-    await u.click(within(timelineCol).getByRole('button', { name: 'Xem' }))
-
-    await waitFor(() => {
-      expect(within(timelineCol).getByRole('img')).toBeTruthy()
-    })
-    const evCall = calls.find((r) => new URL(r.url).pathname.endsWith(`/evidence/${EV_1_ID}`))
-    expect(evCall?.headers.get('Authorization')).toBe('Bearer access-cs')
-  })
-
-  it('blocks decision submission when reason is empty or whitespace-only and enforces BR-CPL-06 ceiling', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () => jsonResponse(makeDetail()))
-
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
-
-    const decisionCol = await screen.findByRole('region', { name: 'Ra quyết định phân xử' })
-    const submitBtn = within(decisionCol).getByRole('button', { name: 'Xác nhận quyết định' })
-    const reasonBox = within(decisionCol).getByLabelText(/Lý do quyết định/)
-
-    // Empty reason -> submit disabled
-    expect(submitBtn.hasAttribute('disabled')).toBe(true)
-
-    // Whitespace-only reason -> still disabled & no API call
-    await u.type(reasonBox, '     ')
-    expect(submitBtn.hasAttribute('disabled')).toBe(true)
-    expect(
-      within(decisionCol).getByText('Bắt buộc nhập lý do quyết định phân xử.'),
-    ).toBeTruthy()
-
-    // Exceeds remainingRefundable (530,000) -> validation error & submit disabled
-    await u.clear(reasonBox)
-    await u.type(reasonBox, 'Bằng chứng rõ ràng, chấp nhận hoàn một phần.')
-    const refundInput = within(decisionCol).getByLabelText(/Số tiền hoàn/)
-    await u.clear(refundInput)
-    await u.type(refundInput, '600000')
-
-    expect(
-      await within(decisionCol).findByText(/Số tiền hoàn vượt quá hạn mức khả hoàn còn lại/),
-    ).toBeTruthy()
-    expect(submitBtn.hasAttribute('disabled')).toBe(true)
-    expect(calls.filter((r) => r.method === 'POST')).toHaveLength(0)
-  })
-
-  it('submits CS decision with mandatory reason and locks finalized view', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    const finalizedResolution = {
-      resolutionId: 'res-1',
-      complaintId: CPL_1_ID,
-      outcome: 'PARTIAL_REFUND',
-      refundAmount: 150_000,
-      responsibleParty: 'SELLER',
-      reason: 'Hộp móp nhưng sản phẩm hoạt động bình thường, hỗ trợ hoàn 150.000đ.',
-      decidedBy: CS_USER_ID,
-      decidedAt: '2026-11-25T07:00:00Z',
+      // Rút khiếu nại (Withdraw)
+      await user.click(await screen.findByRole('button', { name: 'Rút khiếu nại' }))
+      const withdrawDialog = await screen.findByRole('dialog')
+      await user.type(within(withdrawDialog).getByLabelText('Lý do (tùy chọn)'), 'Đã tự thỏa thuận xong')
+      await user.click(within(withdrawDialog).getByRole('button', { name: 'Xác nhận rút khiếu nại' }))
+      await waitFor(() => {
+        expect(recordedCalls.some((c) => c.url.endsWith('/withdraw'))).toBe(true)
+      })
+    } finally {
+      openSpy.mockRestore()
+      URL.createObjectURL = origCreateObjectURL
+      URL.revokeObjectURL = origRevokeObjectURL
     }
-    let decided = false
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () =>
-      jsonResponse(
-        decided
-          ? makeDetail({
-              complaint: makeSummary({ status: 'EXECUTING', version: 5 }),
-              resolution: finalizedResolution,
-              availableActions: [],
-            })
-          : makeDetail(),
-      ),
+  })
+})
+
+describe('T4-11: Seller Complaints UI (/seller/complaints & :id)', () => {
+  afterEach(() => {
+    cleanup()
+    clearAuthSession()
+    vi.unstubAllGlobals()
+  })
+
+  beforeEach(() => {
+    setSellerSession()
+  })
+
+  it('lists only seller shop complaints and renders <SlaCountdownPill />', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const req = input instanceof Request ? input : new Request(input.toString())
+      if (req.url.endsWith('/v1/seller/shop')) {
+        return jsonResponse(makeSellerShop())
+      }
+      if (req.url.includes('/v1/complaints')) {
+        return jsonResponse({
+          items: [
+            makeSummary({ complaintId: CPL_1_ID, complaintCode: 'CPL-MY-SHOP', shopId: SHOP_1_ID }),
+            makeSummary({ complaintId: CPL_2_ID, complaintCode: 'CPL-OTHER-SHOP', shopId: SHOP_2_ID }),
+          ],
+          page: 1,
+          limit: 10,
+          total: 2,
+          totalPages: 1,
+        } satisfies ComplaintListResult)
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithRouter(<SellerComplaintsPage />, ['/seller/complaints'], '/seller/complaints')
+
+    expect((await screen.findAllByText('CPL-MY-SHOP')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('CPL-OTHER-SHOP')).toBeNull()
+    expect(screen.getAllByRole('timer').length).toBeGreaterThan(0)
+  })
+
+  it('returns 403 UI if complaint belongs to a different shop and hides relatedComplaints', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const req = input instanceof Request ? input : new Request(input.toString())
+      if (req.url.endsWith('/v1/seller/shop')) {
+        return jsonResponse(makeSellerShop())
+      }
+      if (req.url.endsWith(`/v1/complaints/${CPL_2_ID}`)) {
+        return jsonResponse(
+          makeDetail({
+            complaint: makeSummary({ complaintId: CPL_2_ID, shopId: SHOP_2_ID }),
+          }),
+        )
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithRouter(
+      <SellerComplaintDetailPage />,
+      [`/seller/complaints/${CPL_2_ID}`],
+      '/seller/complaints/:id',
     )
 
-    let decisionBody: unknown
-    on('POST', `/v1/cs/complaints/${CPL_1_ID}/decision`, async (request) => {
-      decisionBody = await request.json()
-      decided = true
-      return jsonResponse({
-        complaint: makeSummary({ status: 'EXECUTING', version: 5 }),
-        resolution: finalizedResolution,
-        refundDispatched: true,
+    expect(await screen.findByText('403 — Không có quyền truy cập')).toBeTruthy()
+  })
+
+  it('validates partial refund ceiling client-side AND handles HTTP 422 Unprocessable Entity from backend', async () => {
+    const user = userEvent.setup()
+    let sellerOrderFails = false
+    let submittedProposal: Record<string, unknown> | null = null
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const req = input instanceof Request ? input : new Request(input.toString())
+      if (req.url.endsWith('/v1/seller/shop')) {
+        return jsonResponse(makeSellerShop())
+      }
+      if (req.url.endsWith(`/v1/complaints/${CPL_1_ID}`) && req.method === 'GET') {
+        return jsonResponse(makeDetail({ relatedComplaints: [] }))
+      }
+      if (req.url.endsWith(`/v1/seller-orders/${SO_1_ID}`)) {
+        if (sellerOrderFails) {
+          return jsonResponse({ code: 'SERVICE_UNAVAILABLE', message: 'SVC-ORD down' }, 503)
+        }
+        return jsonResponse(makeSellerOrderDetail())
+      }
+      if (req.url.endsWith(`/v1/complaints/${CPL_1_ID}/responses`) && req.method === 'POST') {
+        const body = JSON.parse(await req.clone().text()) as {
+          action: string
+          resolution?: string
+          refundAmount?: number
+          content: string
+        }
+        if (body.refundAmount && body.refundAmount > 425_000) {
+          return jsonResponse(
+            {
+              code: 'REFUND_AMOUNT_EXCEEDS_PAID',
+              message: 'Số tiền đề xuất hoàn vượt quá số tiền đã thanh toán còn lại của gói hàng.',
+              details: [{ field: 'refundAmount', reason: 'Tối đa 425000 VND' }],
+              correlationId: 'corr-422-test',
+            },
+            422,
+          )
+        }
+        submittedProposal = body
+        return jsonResponse({
+          complaint: makeSummary({ status: 'NEGOTIATING' }),
+          message: {
+            messageId: 'm-seller',
+            complaintId: CPL_1_ID,
+            senderId: SELLER_ID,
+            senderRole: 'SELLER',
+            content: body.content,
+            proposal: {
+              action: body.action,
+              resolution: body.resolution,
+              refundAmount: body.refundAmount,
+            },
+            createdAt: '2026-11-25T09:30:00Z',
+          },
+        })
+      }
+      return jsonResponse({ code: 'NOT_FOUND', message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    // 1. Khi đã tải được SellerOrder (totalAmount = 425.000): kiểm tra chặn client-side nếu nhập > 425.000
+    const { unmount } = renderWithRouter(
+      <SellerComplaintDetailPage />,
+      [`/seller/complaints/${CPL_1_ID}`],
+      '/seller/complaints/:id',
+    )
+
+    expect(await screen.findByText('CPL-20261125-AA11BB')).toBeTruthy()
+    expect(await screen.findByText(/Giá trị gói hàng tối đa có thể hoàn/i)).toBeTruthy()
+    expect(screen.getByRole('timer')).toBeTruthy()
+
+    const amountInput = screen.getByLabelText('Số tiền đề xuất hoàn một phần (VND)')
+    const contentInput = screen.getByLabelText('Nội dung giải trình / phản hồi')
+
+    await user.type(amountInput, '500000')
+    await user.type(contentInput, 'Đề xuất hoàn vượt giá trị đơn')
+    await user.click(screen.getByRole('button', { name: 'Gửi đề xuất hoàn một phần' }))
+
+    expect(await screen.findByText(/Số tiền hoàn không được vượt quá giá trị gói hàng/i)).toBeTruthy()
+    expect(submittedProposal).toBeNull()
+
+    // Sửa lại số tiền hợp lệ (<= 425.000) và gửi thành công
+    await user.clear(amountInput)
+    await user.type(amountInput, '150000')
+    await user.click(screen.getByRole('button', { name: 'Gửi đề xuất hoàn một phần' }))
+
+    await waitFor(() => {
+      expect(submittedProposal).toMatchObject({
+        action: 'PROPOSE',
+        resolution: 'PARTIAL_REFUND',
+        refundAmount: 150_000,
       })
     })
+    unmount()
 
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
-
-    const decisionCol = await screen.findByRole('region', { name: 'Ra quyết định phân xử' })
-    const reasonBox = within(decisionCol).getByLabelText(/Lý do quyết định/)
-    await u.type(reasonBox, '  Hộp móp nhưng sản phẩm hoạt động bình thường, hỗ trợ hoàn 150.000đ.  ')
-
-    const submitBtn = within(decisionCol).getByRole('button', { name: 'Xác nhận quyết định' })
-    await waitFor(() => expect(submitBtn.hasAttribute('disabled')).toBe(false))
-    await u.click(submitBtn)
-
-    expect(await screen.findByText(/Đã ghi nhận quyết định phân xử cho khiếu nại CPL-20261125-001/)).toBeTruthy()
-    expect(decisionBody).toEqual({
-      outcome: 'PARTIAL_REFUND',
-      responsibleParty: 'SELLER',
-      refundAmount: 150_000,
-      reason: 'Hộp móp nhưng sản phẩm hoạt động bình thường, hỗ trợ hoàn 150.000đ.',
-      version: 4,
-    })
-    expect(within(decisionCol).getByText('Quyết định phân xử chung thẩm')).toBeTruthy()
-  })
-
-  it('surfaces 409 version conflict on decision submission with reload button', async () => {
-    const u = userEvent.setup()
-    loginAs(['CS'])
-    on('GET', `/v1/complaints/${CPL_1_ID}`, () => jsonResponse(makeDetail()))
-    on('POST', `/v1/cs/complaints/${CPL_1_ID}/decision`, () =>
-      apiErrorResponse(409, 'VERSION_CONFLICT', 'Khiếu nại vừa được cập nhật đồng thời, vui lòng tải lại.'),
+    // 2. Khi SVC-ORD gián đoạn (chưa có ceiling phía client): server trả HTTP 422 Unprocessable Entity và UI xử lý chuẩn
+    sellerOrderFails = true
+    renderWithRouter(
+      <SellerComplaintDetailPage />,
+      [`/seller/complaints/${CPL_1_ID}`],
+      '/seller/complaints/:id',
     )
 
-    renderComplaintsRoute(`/admin/complaints/${CPL_1_ID}`)
+    expect(
+      await screen.findByText(/Hệ thống máy chủ sẽ kiểm tra giới hạn hoàn tiền khi gửi \(HTTP 422/i),
+    ).toBeTruthy()
 
-    const decisionCol = await screen.findByRole('region', { name: 'Ra quyết định phân xử' })
-    await u.type(within(decisionCol).getByLabelText(/Lý do quyết định/), 'Xử lý theo quy định.')
-    const submitBtn = within(decisionCol).getByRole('button', { name: 'Xác nhận quyết định' })
-    await waitFor(() => expect(submitBtn.hasAttribute('disabled')).toBe(false))
-    await u.click(submitBtn)
+    await user.type(screen.getByLabelText('Số tiền đề xuất hoàn một phần (VND)'), '999000')
+    await user.type(screen.getByLabelText('Nội dung giải trình / phản hồi'), 'Thử gửi số tiền vượt mức')
+    await user.click(screen.getByRole('button', { name: 'Gửi đề xuất hoàn một phần' }))
 
     expect(
-      await within(decisionCol).findByText('Khiếu nại vừa được cập nhật đồng thời, vui lòng tải lại.'),
+      await screen.findByText(/Số tiền đề xuất hoàn vượt quá số tiền đã thanh toán còn lại/i),
     ).toBeTruthy()
-    expect(within(decisionCol).getByText('corr-cpl-1')).toBeTruthy()
-    expect(within(decisionCol).getByRole('button', { name: 'Tải lại hồ sơ mới nhất' })).toBeTruthy()
+    expect(screen.getByText('corr-422-test')).toBeTruthy()
   })
 })

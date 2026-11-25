@@ -7,7 +7,6 @@ export type StatusTone = 'neutral' | 'info' | 'warning' | 'success' | 'danger'
 export const STATUS_TONES = {
   // Neutral / Draft
   DRAFT: 'neutral',
-  SUBMITTED: 'neutral',
   PENDING_VERIFICATION: 'neutral',
   INITIATED: 'neutral',
   PENDING_CREATION: 'neutral',
@@ -22,6 +21,7 @@ export const STATUS_TONES = {
   IN_TRANSIT: 'info',
   OUT_FOR_DELIVERY: 'info',
   PROCESSING: 'info',
+  SUBMITTED: 'info',
   UNDER_REVIEW: 'info',
   EXECUTING: 'info',
   // Warning / Action Needed

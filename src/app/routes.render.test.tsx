@@ -85,6 +85,52 @@ describe('portal rendering by role', () => {
     expect(html).not.toContain(FORBIDDEN)
   })
 
+  it('buyer can open buyer complaints list and detail routes (T4-11)', async () => {
+    const listHtml = await render('/account/complaints', ['BUYER'])
+    expect(listHtml).toContain('Khiếu nại của tôi')
+    expect(listHtml).not.toContain(FORBIDDEN)
+    expect(listHtml).not.toContain('T4-11')
+
+    const detailHtml = await render('/account/complaints/cpl-1', ['BUYER'])
+    expect(detailHtml).not.toContain(FORBIDDEN)
+    expect(detailHtml).not.toContain('T4-11')
+  })
+
+  it('seller can open seller complaints list and detail routes (T4-11)', async () => {
+    const listHtml = await render('/seller/complaints', ['BUYER', 'SELLER'])
+    expect(listHtml).toContain('Quản lý khiếu nại')
+    expect(listHtml).not.toContain(FORBIDDEN)
+    expect(listHtml).not.toContain('T4-11')
+
+    const detailHtml = await render('/seller/complaints/cpl-1', ['BUYER', 'SELLER'])
+    expect(detailHtml).not.toContain(FORBIDDEN)
+    expect(detailHtml).not.toContain('T4-11')
+
+    expect(await render('/seller/complaints', ['BUYER'])).toContain(FORBIDDEN)
+  })
+
+  it('seller can open seller shop management (/seller/shop — T2-07)', async () => {
+    const html = await render('/seller/shop', ['BUYER', 'SELLER'])
+    expect(html).toContain('Quản lý gian hàng')
+    expect(html).not.toContain('T2-07')
+    expect(html).not.toContain(FORBIDDEN)
+  })
+
+  it('admin can open admin shops management and CS gets 403 (/admin/shops — T2-07)', async () => {
+    const adminHtml = await render('/admin/shops', ['ADMINISTRATOR'])
+    expect(adminHtml).toContain('Quản lý gian hàng')
+    expect(adminHtml).not.toContain('T2-07')
+    expect(adminHtml).not.toContain(FORBIDDEN)
+
+    expect(await render('/admin/shops', ['CS'])).toContain(FORBIDDEN)
+  })
+
+  it('guest can open public shop route (/shops/:id — T2-07)', async () => {
+    const html = await render('/shops/shop-1')
+    expect(html).not.toContain('T2-07')
+    expect(html).not.toContain(FORBIDDEN)
+  })
+
   it('CS can open orders but not admin-only pages, and never sees admin-only menu items', async () => {
     const orders = await render('/admin/orders', ['CS'])
     expect(orders).not.toContain(FORBIDDEN)

@@ -2,7 +2,10 @@ import { authFetch } from '@/api/auth-fetch'
 import { createApiClient } from '@/api/client'
 import { networkError, toApiError, unwrap } from '@/api/errors'
 import type { SvcCpl } from '@/api/generated'
+import { idempotencyHeaders } from '@/api/idempotency'
 import { env } from '@/lib/env'
+
+export { COMPLAINT_TYPES, formatFileSize, type ComplaintType } from './helpers'
 
 export type ComplaintSummaryView = SvcCpl.components['schemas']['ComplaintSummaryView']
 export type CSQueueItemView = SvcCpl.components['schemas']['CSQueueItemView']
@@ -15,6 +18,11 @@ export type EvidenceView = SvcCpl.components['schemas']['EvidenceView']
 export type ComplaintMessageView = SvcCpl.components['schemas']['ComplaintMessageView']
 export type ComplaintStatusHistoryView = SvcCpl.components['schemas']['ComplaintStatusHistoryView']
 export type ResolutionView = SvcCpl.components['schemas']['ResolutionView']
+export type ProposalPayload = SvcCpl.components['schemas']['ProposalPayload']
+export type CreateComplaintsInput = SvcCpl.components['schemas']['CreateComplaintsInput']
+export type CreateComplaintsResult = SvcCpl.components['schemas']['CreateComplaintsResult']
+export type RespondComplaintInput = SvcCpl.components['schemas']['RespondComplaintInput']
+export type RespondComplaintResult = SvcCpl.components['schemas']['RespondComplaintResult']
 export type CSDecisionInput = SvcCpl.components['schemas']['CSDecisionInput']
 export type CSDecisionResult = SvcCpl.components['schemas']['CSDecisionResult']
 
@@ -24,15 +32,6 @@ export type ListCsQueueParams = NonNullable<
 export type ListComplaintsParams = NonNullable<
   SvcCpl.operations['list-complaints']['parameters']['query']
 >
-
-export const COMPLAINT_TYPES = [
-  'NOT_RECEIVED',
-  'WRONG_ITEM',
-  'DAMAGED',
-  'NOT_AS_DESCRIBED',
-  'OTHER',
-] as const
-export type ComplaintType = (typeof COMPLAINT_TYPES)[number]
 
 export const DECISION_OUTCOMES = [
   'FULL_REFUND',
@@ -57,6 +56,17 @@ export type ComplaintPriority = (typeof PRIORITIES)[number]
 
 export const cplClient = createApiClient<SvcCpl.paths>()
 
+export const complaintKeys = {
+  all: ['complaints'] as const,
+  lists: () => ['complaints', 'list'] as const,
+  list: (scope: 'BUYER' | 'SELLER', params: ListComplaintsParams) =>
+    ['complaints', 'list', scope, params] as const,
+  details: () => ['complaints', 'detail'] as const,
+  detail: (complaintId: string) => ['complaints', 'detail', complaintId] as const,
+  evidenceBlob: (complaintId: string, evidenceId: string) =>
+    ['complaints', 'evidence', complaintId, evidenceId] as const,
+}
+
 export const complaintsKeys = {
   all: ['complaints'] as const,
   csQueue: ['complaints', 'cs-queue'] as const,
@@ -71,12 +81,84 @@ export function apiListCsQueue(params: ListCsQueueParams): Promise<CSQueueResult
   return unwrap(cplClient.GET('/v1/cs/complaints/queue', { params: { query: params } }))
 }
 
-export function apiListComplaints(params: ListComplaintsParams): Promise<ComplaintListResult> {
-  return unwrap(cplClient.GET('/v1/complaints', { params: { query: params } }))
+export function apiListComplaints(params: ListComplaintsParams = {}): Promise<ComplaintListResult> {
+  return unwrap(
+    cplClient.GET('/v1/complaints', {
+      params: {
+        query: {
+          scope: params.scope || undefined,
+          shopId: params.shopId || undefined,
+          status: params.status || undefined,
+          type: params.type || undefined,
+          orderId: params.orderId || undefined,
+          sellerOrderId: params.sellerOrderId || undefined,
+          overdue: params.overdue || undefined,
+          from: params.from || undefined,
+          to: params.to || undefined,
+          page: params.page,
+          limit: params.limit,
+        },
+      },
+    }),
+  )
 }
 
-export function apiGetComplaintDetail(id: string): Promise<ComplaintDetailView> {
-  return unwrap(cplClient.GET('/v1/complaints/{id}', { params: { path: { id } } }))
+export function apiGetComplaintDetail(complaintId: string): Promise<ComplaintDetailView> {
+  return unwrap(
+    cplClient.GET('/v1/complaints/{id}', {
+      params: { path: { id: complaintId } },
+    }),
+  )
+}
+
+export function apiCreateComplaints(
+  body: CreateComplaintsInput,
+  idempotencyKey: string,
+): Promise<CreateComplaintsResult> {
+  return unwrap(
+    cplClient.POST('/v1/complaints', {
+      body,
+      headers: idempotencyHeaders(idempotencyKey),
+    }),
+  )
+}
+
+export function apiRespondToComplaint(
+  complaintId: string,
+  body: RespondComplaintInput,
+): Promise<RespondComplaintResult> {
+  return unwrap(
+    cplClient.POST('/v1/complaints/{id}/responses', {
+      params: { path: { id: complaintId } },
+      body,
+    }),
+  )
+}
+
+export function apiWithdrawComplaint(
+  complaintId: string,
+  reason?: string,
+): Promise<ComplaintSummaryView> {
+  const trimmed = reason?.trim()
+  return unwrap(
+    cplClient.POST('/v1/complaints/{id}/withdraw', {
+      params: { path: { id: complaintId } },
+      body: trimmed ? { reason: trimmed } : {},
+    }),
+  )
+}
+
+export function apiEscalateComplaint(
+  complaintId: string,
+  reason?: string,
+): Promise<ComplaintSummaryView> {
+  const trimmed = reason?.trim()
+  return unwrap(
+    cplClient.POST('/v1/complaints/{id}/escalate', {
+      params: { path: { id: complaintId } },
+      body: trimmed ? { reason: trimmed } : {},
+    }),
+  )
 }
 
 export function apiClaimComplaint(id: string, version?: number): Promise<ComplaintSummaryView> {
@@ -98,10 +180,38 @@ export function apiDecideComplaint(id: string, input: CSDecisionInput): Promise<
 }
 
 /**
- * Tải tệp bằng chứng riêng tư (NFR-SEC-011) qua `authFetch` để gắn Bearer token.
- * Trình duyệt không tự gửi Bearer token cho thẻ `<img>` hay link trực tiếp.
+ * Tải lên tệp bằng chứng (multipart/form-data) qua `authFetch` để trình duyệt tự đặt boundary.
  */
-export async function apiDownloadComplaintEvidence(complaintId: string, evidenceId: string): Promise<Blob> {
+export async function apiUploadComplaintEvidence(
+  complaintId: string,
+  file: File,
+): Promise<EvidenceView> {
+  const form = new FormData()
+  form.set('file', file, file.name)
+
+  let response: Response
+  try {
+    response = await authFetch(
+      new Request(`${env.apiBaseUrl}/v1/complaints/${encodeURIComponent(complaintId)}/evidence`, {
+        method: 'POST',
+        body: form,
+      }),
+    )
+  } catch {
+    throw networkError()
+  }
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw toApiError(body, response)
+  return body as EvidenceView
+}
+
+/**
+ * Tải tệp bằng chứng riêng tư qua proxy có kiểm tra RBAC/IDOR (NFR-SEC-011).
+ */
+export async function apiDownloadComplaintEvidence(
+  complaintId: string,
+  evidenceId: string,
+): Promise<Blob> {
   const url = `${env.apiBaseUrl}/v1/complaints/${encodeURIComponent(complaintId)}/evidence/${encodeURIComponent(evidenceId)}`
   let response: Response
   try {
@@ -154,13 +264,6 @@ export function sortBySlaRemainingAsc<
     if (diff !== 0) return diff
     return Date.parse(a.createdAt) - Date.parse(b.createdAt)
   })
-}
-
-export function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return '0 B'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
 export function readBlobAsDataUrl(blob: Blob): Promise<string> {

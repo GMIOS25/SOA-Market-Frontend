@@ -24,8 +24,9 @@ export const STATUS_TONES = {
   UNDER_REVIEW: 'info',
   EXECUTING: 'info',
   // Warning / Action Needed
-  PENDING_PAYMENT: 'warning',
+  /** Hồ sơ nhà bán hoặc giao dịch đang chờ xử lý (SVC-SEL, SVC-PAY). */
   PENDING: 'warning',
+  PENDING_PAYMENT: 'warning',
   AWAITING_CONFIRMATION: 'warning',
   PENDING_REVIEW: 'warning',
   PENDING_MODERATION: 'warning',

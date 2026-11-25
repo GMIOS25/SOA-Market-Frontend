@@ -17,8 +17,8 @@
   "UNDER_REVIEW": "Đang xem xét",
   "EXECUTING": "Đang thực thi",
 
+  "PENDING": "Chờ xử lý",
   "PENDING_PAYMENT": "Chờ thanh toán",
-  "PENDING": "Đang chờ",
   "AWAITING_CONFIRMATION": "Chờ nhà bán xác nhận",
   "PENDING_REVIEW": "Chờ duyệt",
   "PENDING_MODERATION": "Chờ kiểm duyệt",

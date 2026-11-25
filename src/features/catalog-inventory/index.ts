@@ -1,3 +1,8 @@
 export { HomePage } from './pages/HomePage'
 export { ProductDetailPage } from './pages/ProductDetailPage'
 export { ProductSearchPage } from './pages/ProductSearchPage'
+export { SellerProductsPage } from './pages/SellerProductsPage'
+export { SellerProductFormPage } from './pages/SellerProductFormPage'
+export { SellerInventoryPage } from './pages/SellerInventoryPage'
+export { AdminCategoriesPage } from './pages/AdminCategoriesPage'
+export { AdminProductModerationPage } from './pages/AdminProductModerationPage'

@@ -18,7 +18,16 @@ import {
   SellerOrderDetailPage,
   SellerOrdersPage,
 } from '@/features/cart-checkout-order'
-import { HomePage, ProductDetailPage, ProductSearchPage } from '@/features/catalog-inventory'
+import {
+  AdminCategoriesPage,
+  AdminProductModerationPage,
+  HomePage,
+  ProductDetailPage,
+  ProductSearchPage,
+  SellerInventoryPage,
+  SellerProductFormPage,
+  SellerProductsPage,
+} from '@/features/catalog-inventory'
 import {
   AdminComplaintsQueuePage,
   AdminComplaintWorkspacePage,
@@ -71,8 +80,8 @@ function routesFromNav(base: string, groups: NavGroup[], pages: Partial<Record<N
 const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   sellerDashboard: soon('items.sellerDashboard', 'T1-11'),
   sellerShop: <SellerShopPage />,
-  sellerProducts: soon('items.sellerProducts', 'T3-07'),
-  sellerInventory: soon('items.sellerInventory', 'T3-07'),
+  sellerProducts: <SellerProductsPage />,
+  sellerInventory: <SellerInventoryPage />,
   sellerOrders: <SellerOrdersPage />,
   sellerReviews: soon('items.sellerReviews', 'T2-11'),
   sellerComplaints: <SellerComplaintsPage />,
@@ -84,10 +93,10 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminOrders: soon('items.adminOrders', 'T1-11'),
   adminTransactions: soon('items.adminTransactions', 'T1-11'),
   adminExceptions: <AdminExceptionsPage />,
-  adminCategories: soon('items.adminCategories', 'T3-07'),
+  adminCategories: <AdminCategoriesPage />,
   adminUsers: <AdminUsersPage />,
   adminShops: <AdminShopsPage />,
-  adminModerationProducts: soon('items.adminModerationProducts', 'T3-07'),
+  adminModerationProducts: <AdminProductModerationPage />,
   adminModerationReviews: soon('items.adminModerationReviews', 'T2-11'),
   adminComplaintsQueue: <AdminComplaintsQueuePage />,
   adminParams: soon('items.adminParams', 'T1-11'),
@@ -156,8 +165,8 @@ export const routes: RouteObject[] = [
         ),
         children: [
           ...routesFromNav('/seller', SELLER_NAV, SELLER_PAGES),
-          { path: 'products/new', element: soon('pages.sellerProductNew', 'T3-07') },
-          { path: 'products/:id/edit', element: soon('pages.sellerProductEdit', 'T3-07') },
+          { path: 'products/new', element: <SellerProductFormPage /> },
+          { path: 'products/:id/edit', element: <SellerProductFormPage /> },
           { path: 'orders/:id', element: <SellerOrderDetailPage /> },
           { path: 'complaints/:id', element: <SellerComplaintDetailPage /> },
         ],

@@ -1,0 +1,146 @@
+{
+  "sellerType": {
+    "INDIVIDUAL": "Cá nhân",
+    "ORGANIZATION": "Tổ chức / Doanh nghiệp"
+  },
+  "docType": {
+    "CCCD_FRONT": "CCCD mặt trước",
+    "CCCD_BACK": "CCCD mặt sau",
+    "BUSINESS_LICENSE": "Giấy chứng nhận ĐKKD",
+    "REPRESENTATIVE_CCCD_FRONT": "CCCD người đại diện — mặt trước",
+    "REPRESENTATIVE_CCCD_BACK": "CCCD người đại diện — mặt sau"
+  },
+  "onboarding": {
+    "title": "Đăng ký bán hàng",
+    "subtitle": "Mở gian hàng trên SOA-Market. Hồ sơ được Quản trị viên xét duyệt trước khi gian hàng hoạt động.",
+    "loadError": "Tạm thời chưa tải được hồ sơ đăng ký của bạn.",
+    "form": {
+      "sellerTypeLegend": "Loại hình nhà bán",
+      "sellerTypeHint": {
+        "INDIVIDUAL": "Hộ kinh doanh / cá nhân — cần CCCD 2 mặt.",
+        "ORGANIZATION": "Công ty, doanh nghiệp — cần Giấy ĐKKD và CCCD người đại diện."
+      },
+      "shopName": "Tên gian hàng",
+      "shopNameHint": "2–100 ký tự, không trùng với gian hàng khác.",
+      "identityNumber": {
+        "INDIVIDUAL": "Số CCCD",
+        "ORGANIZATION": "Mã số doanh nghiệp"
+      },
+      "identityNumberHint": {
+        "INDIVIDUAL": "Đúng 12 chữ số.",
+        "ORGANIZATION": "10 chữ số, có thể kèm mã chi nhánh (VD 0101234567-001)."
+      },
+      "taxCode": "Mã số thuế",
+      "taxCodeHint": "10 chữ số, 10 chữ số kèm mã chi nhánh (-xxx) hoặc 12 chữ số.",
+      "documentsLegend": "Tài liệu xác minh (KYC)",
+      "documentsHint": "Ảnh JPEG, PNG hoặc WebP, tối đa 5MB mỗi tệp. Ảnh rõ nét, đủ 4 góc.",
+      "chooseFile": "Chọn ảnh",
+      "replaceFile": "Đổi ảnh",
+      "removeFile": "Bỏ ảnh",
+      "privacyNotice": "Tài liệu KYC được lưu riêng tư và chỉ Quản trị viên xét duyệt mới xem được.",
+      "submit": "Nộp hồ sơ",
+      "submitting": "Đang tải hồ sơ lên...",
+      "cancelResubmit": "Quay lại trạng thái hồ sơ",
+      "submitError": "Chưa nộp được hồ sơ. Vui lòng thử lại."
+    },
+    "validation": {
+      "shopNameMin": "Tên gian hàng tối thiểu 2 ký tự",
+      "shopNameMax": "Tên gian hàng tối đa 100 ký tự",
+      "cccd": "Số CCCD phải gồm đúng 12 chữ số",
+      "businessNumber": "Mã số doanh nghiệp gồm 10 chữ số (hoặc kèm mã chi nhánh -xxx)",
+      "taxCode": "Mã số thuế gồm 10 chữ số, 10 chữ số kèm mã chi nhánh (-xxx) hoặc 12 chữ số",
+      "fileRequired": "Tài liệu bắt buộc",
+      "fileType": "Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP",
+      "fileSize": "Tệp vượt quá dung lượng tối đa 5MB"
+    },
+    "status": {
+      "PENDING": {
+        "title": "Hồ sơ đang chờ duyệt",
+        "description": "Quản trị viên sẽ xét duyệt hồ sơ của bạn. Bạn chưa thể nộp hồ sơ khác trong thời gian này."
+      },
+      "APPROVED": {
+        "title": "Hồ sơ đã được duyệt",
+        "description": "Gian hàng của bạn đã được tạo. Hãy vào Kênh Người bán để cập nhật thông tin gian hàng và địa chỉ lấy hàng."
+      },
+      "REJECTED": {
+        "title": "Hồ sơ bị từ chối",
+        "description": "Bạn có thể chỉnh sửa và nộp hồ sơ mới."
+      },
+      "reasonLabel": "Lý do từ chối",
+      "noteLabel": "Ghi chú của Quản trị viên",
+      "submittedAt": "Nộp lúc",
+      "reviewedAt": "Xử lý lúc",
+      "applicationCode": "mã hồ sơ",
+      "resubmit": "Nộp hồ sơ mới",
+      "goToSeller": "Vào Kênh Người bán",
+      "activating": "Đang kích hoạt Kênh Người bán...",
+      "roleNotReady": "Hệ thống đang cấp quyền Nhà bán cho tài khoản. Vui lòng thử lại sau vài giây."
+    },
+    "previousRejection": "Hồ sơ trước bị từ chối với lý do:"
+  },
+  "admin": {
+    "title": "Duyệt hồ sơ nhà bán",
+    "subtitle": "Hồ sơ cũ nhất hiển thị trước. Duyệt sẽ tạo gian hàng ACTIVE và cấp vai trò Nhà bán.",
+    "tabs": {
+      "label": "Lọc theo trạng thái",
+      "PENDING": "Chờ duyệt",
+      "APPROVED": "Đã duyệt",
+      "REJECTED": "Đã từ chối",
+      "ALL": "Tất cả"
+    },
+    "columns": {
+      "shop": "Gian hàng",
+      "sellerType": "Loại hình",
+      "identity": "CCCD / MSDN",
+      "taxCode": "MST",
+      "submittedAt": "Ngày nộp",
+      "status": "Trạng thái",
+      "actions": "Thao tác"
+    },
+    "view": "Xem hồ sơ",
+    "loadError": "Tạm thời chưa tải được danh sách hồ sơ.",
+    "empty": {
+      "PENDING": "Không còn hồ sơ nào chờ duyệt.",
+      "other": "Không có hồ sơ nào."
+    },
+    "pagination": {
+      "summary": "Trang {{page}} / {{totalPages}} · {{totalItems}} hồ sơ",
+      "prev": "Trang trước",
+      "next": "Trang sau"
+    },
+    "detail": {
+      "title": "Hồ sơ {{shopName}}",
+      "description": "Kiểm tra thông tin & tài liệu KYC trước khi ra quyết định.",
+      "applicant": "Tài khoản người nộp",
+      "applicationId": "mã hồ sơ",
+      "documents": "Tài liệu KYC",
+      "noDocuments": "Hồ sơ không có tài liệu.",
+      "openImage": "Mở ảnh lớn",
+      "imageAlt": "{{docType}} của hồ sơ {{shopName}}",
+      "imageError": "Không tải được ảnh.",
+      "retryImage": "Tải lại ảnh",
+      "approve": "Duyệt hồ sơ",
+      "reject": "Từ chối"
+    },
+    "approveDialog": {
+      "title": "Duyệt hồ sơ {{shopName}}",
+      "description": "Gian hàng sẽ được tạo ở trạng thái ACTIVE và tài khoản người nộp được cấp vai trò Nhà bán.",
+      "noteLabel": "Ghi chú (không bắt buộc)",
+      "notePlaceholder": "VD: Hồ sơ đầy đủ, thông tin khớp với CCCD.",
+      "noteTooLong": "Ghi chú tối đa {{max}} ký tự",
+      "confirm": "Duyệt & tạo gian hàng",
+      "submitting": "Đang duyệt...",
+      "cancel": "Hủy"
+    },
+    "rejectDialog": {
+      "title": "Từ chối hồ sơ {{shopName}}",
+      "description": "Người nộp sẽ thấy lý do này và có thể nộp hồ sơ mới.",
+      "confirm": "Từ chối hồ sơ"
+    },
+    "conflict": "Hồ sơ này đã được Quản trị viên khác xử lý. Danh sách đã được tải lại.",
+    "reload": "Tải lại dữ liệu mới nhất",
+    "approved": "Đã duyệt hồ sơ {{shopName}} — gian hàng đã được tạo.",
+    "rejected": "Đã từ chối hồ sơ {{shopName}}.",
+    "dismiss": "Đóng thông báo"
+  }
+}

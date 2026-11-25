@@ -22,6 +22,8 @@ export const STATUS_TONES = {
   UNDER_REVIEW: 'info',
   EXECUTING: 'info',
   // Warning / Action Needed
+  /** Hồ sơ nhà bán chờ Admin duyệt (SVC-SEL). */
+  PENDING: 'warning',
   PENDING_PAYMENT: 'warning',
   AWAITING_CONFIRMATION: 'warning',
   PENDING_REVIEW: 'warning',

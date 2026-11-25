@@ -147,6 +147,25 @@ describe('portal rendering by role', () => {
     }
   })
 
+  it('CS and administrator can open complaint queue and arbitration workspace routes (T4-12), while BUYER gets 403', async () => {
+    const csQueueHtml = await render('/admin/complaints/queue', ['CS'])
+    expect(csQueueHtml).toContain('Hàng chờ phân xử khiếu nại')
+    expect(csQueueHtml).not.toContain(FORBIDDEN)
+    expect(csQueueHtml).not.toContain('T4-12')
+
+    const csWorkspaceHtml = await render('/admin/complaints/cpl-1', ['CS'])
+    expect(csWorkspaceHtml).toContain('Quay lại hàng chờ khiếu nại')
+    expect(csWorkspaceHtml).not.toContain(FORBIDDEN)
+    expect(csWorkspaceHtml).not.toContain('T4-12')
+
+    const adminQueueHtml = await render('/admin/complaints/queue', ['ADMINISTRATOR'])
+    expect(adminQueueHtml).toContain('Hàng chờ phân xử khiếu nại')
+    expect(adminQueueHtml).not.toContain(FORBIDDEN)
+
+    expect(await render('/admin/complaints/queue', ['BUYER'])).toContain(FORBIDDEN)
+    expect(await render('/admin/complaints/cpl-1', ['BUYER'])).toContain(FORBIDDEN)
+  })
+
   it('login page explains a forced logout because the account was locked', async () => {
     lockoutAuthSession('Tài khoản của bạn đã bị khóa bởi quản trị viên.')
     expect(await render('/login')).toContain('Tài khoản của bạn đã bị khóa bởi quản trị viên')

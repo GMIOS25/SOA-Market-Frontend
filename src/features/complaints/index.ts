@@ -1,7 +1,9 @@
-export { BuyerComplaintsPage } from './pages/BuyerComplaintsPage'
+export { AdminComplaintsQueuePage } from './pages/AdminComplaintsQueuePage'
+export { AdminComplaintWorkspacePage } from './pages/AdminComplaintWorkspacePage'
 export { BuyerComplaintDetailPage } from './pages/BuyerComplaintDetailPage'
-export { SellerComplaintsPage } from './pages/SellerComplaintsPage'
+export { BuyerComplaintsPage } from './pages/BuyerComplaintsPage'
 export { SellerComplaintDetailPage } from './pages/SellerComplaintDetailPage'
+export { SellerComplaintsPage } from './pages/SellerComplaintsPage'
 
 export { ComplaintTimeline } from './components/ComplaintTimeline'
 export { ComplaintEvidenceSection } from './components/ComplaintEvidenceSection'

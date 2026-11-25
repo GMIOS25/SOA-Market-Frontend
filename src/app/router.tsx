@@ -19,6 +19,8 @@ import {
   SellerOrdersPage,
 } from '@/features/cart-checkout-order'
 import {
+  AdminComplaintsQueuePage,
+  AdminComplaintWorkspacePage,
   BuyerComplaintDetailPage,
   BuyerComplaintsPage,
   SellerComplaintDetailPage,
@@ -85,7 +87,7 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminShops: <AdminShopsPage />,
   adminModerationProducts: soon('items.adminModerationProducts', 'T3-07'),
   adminModerationReviews: soon('items.adminModerationReviews', 'T2-11'),
-  adminComplaintsQueue: soon('items.adminComplaintsQueue', 'T4-12'),
+  adminComplaintsQueue: <AdminComplaintsQueuePage />,
   adminParams: soon('items.adminParams', 'T1-11'),
   adminAuditLogs: soon('items.adminAuditLogs', 'T1-11'),
   adminSystem: soon('items.adminSystem', 'T1-11'),
@@ -171,7 +173,11 @@ export const routes: RouteObject[] = [
           ...adminRoutes,
           {
             path: 'complaints/:id',
-            element: <RequireRole roles={OPS_ROLES}>{soon('pages.adminComplaintDetail', 'T4-12')}</RequireRole>,
+            element: (
+              <RequireRole roles={OPS_ROLES}>
+                <AdminComplaintWorkspacePage />
+              </RequireRole>
+            ),
           },
         ],
       },

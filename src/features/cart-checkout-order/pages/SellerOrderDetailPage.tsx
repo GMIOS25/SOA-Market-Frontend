@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Loader2,
   MapPin,
-  Printer,
   RefreshCw,
   ShieldAlert,
   Store,
@@ -21,14 +20,16 @@ import {
   ServiceFallbackBanner,
   ShopPackageCard,
   ShopPackageItem,
-  ShopPackageSummary,
   SlaCountdownPill,
 } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { getShipmentTimeline, httpUrl } from '@/features/payment-shipping/api'
 import { useAuthSession } from '@/lib/auth/session'
 import { formatDateTime, formatVnd } from '@/lib/format'
+import { OrderPackageItems } from '../components/OrderPackageItems'
 import { PickupAddressAlert } from '../components/PickupAddressAlert'
 import { SellerOrderHistoryTimeline } from '../components/SellerOrderHistoryTimeline'
 import { SellerShipmentSection } from '../components/SellerShipmentSection'
@@ -40,11 +41,9 @@ import {
   apiGetSellerOrderDetail,
   apiGetSellerShop,
   apiGetShipmentLabel,
-  apiGetShipmentTracking,
   apiListShipmentsBySellerOrder,
   apiRejectSellerOrder,
   apiRetryShipment,
-  canPrintShipmentLabel,
   canSellerCancelBeforePickup,
   hasValidPickupAddress,
   isPickupAddressMissingError,
@@ -123,6 +122,13 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
       detail?.status !== 'PENDING_PAYMENT' &&
       detail?.status !== 'AWAITING_CONFIRMATION',
     retry: false,
+    refetchInterval: ({ state }) =>
+      state.status === 'error'
+        ? false
+        : state.data?.some((item) => item.status === 'PENDING_CREATION') ||
+            (detail?.status === 'CONFIRMED' && state.data?.length === 0)
+          ? 2000
+          : false,
   })
 
   const shipmentsData = shipmentsQuery.data
@@ -133,7 +139,7 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
 
   const trackingQuery = useQuery({
     queryKey: ['shipments', 'tracking', shipment?.shipmentId],
-    queryFn: () => apiGetShipmentTracking(shipment!.shipmentId),
+    queryFn: () => getShipmentTimeline(shipment!.shipmentId),
     enabled:
       Boolean(session.accessToken) &&
       Boolean(shipment?.shipmentId) &&
@@ -199,7 +205,12 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
   })
 
   const printLabelMutation = useMutation({
-    mutationFn: (target: SellerShipmentView) => apiGetShipmentLabel(target.shipmentId),
+    mutationFn: async (target: SellerShipmentView) => {
+      const label = await apiGetShipmentLabel(target.shipmentId)
+      const labelUrl = httpUrl(label.labelUrl)
+      if (!labelUrl) throw new Error(t('shipment.labelDialog.noUrlHint'))
+      return { ...label, labelUrl }
+    },
     onMutate: () => {
       setActionError(null)
     },
@@ -221,7 +232,10 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
       setActionError(null)
       setActionSuccess(null)
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      queryClient.setQueryData<SellerShipmentView[]>(['seller-orders', 'shipments', sellerOrderId], (shipments) =>
+        shipments?.map((item) => item.shipmentId === updated.shipmentId ? updated : item),
+      )
       setActionSuccess(t('detail.feedback.retryShipmentSuccess'))
       invalidateOrderAndShipments()
     },
@@ -248,8 +262,6 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
   const shopDisplayName =
     myShop?.name || (detail ? fallbackShopName(detail.shopId) : '')
 
-  const canShowQuickRetry = shipment?.status === 'CREATE_FAILED'
-  const canShowQuickPrint = canPrintShipmentLabel(shipment)
 
   const isMutating =
     confirmMutation.isPending ||
@@ -422,213 +434,84 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-            <div className="space-y-6 lg:col-span-8">
-              <ShopPackageCard
-                shop={{ id: detail.shopId, name: shopDisplayName }}
-                shopHref={null}
-                status={detail.status}
-                code={{ value: detail.sellerOrderId, display: detail.sellerOrderCode }}
-                sla={
-                  isAwaitingConfirm && detail.confirmDueAt ? (
-                    <SlaCountdownPill
-                      label={t('common.confirmSlaShort')}
-                      startedAt={resolveConfirmStartedAt(detail.createdAt, detail.updatedAt, detail.confirmDueAt)}
-                      deadline={detail.confirmDueAt}
-                    />
-                  ) : undefined
-                }
-                footer={
-                  <ShopPackageSummary
-                    itemsAmount={detail.itemsAmount}
-                    shippingFee={detail.shippingFee}
-                    carrier={shipment?.carrier || detail.carrier || undefined}
-                    etaAt={shipment?.etaAt ?? undefined}
-                  />
-                }
-              >
-                {(detail.items ?? []).map((item) => (
-                  <ShopPackageItem
-                    key={item.orderItemId}
-                    name={item.productName}
-                    variantLabel={item.variantLabel}
-                    imageUrl={item.imageRef}
-                    quantity={item.quantity}
-                    unitPrice={item.unitPrice}
-                    end={
-                      <span className="text-sm font-semibold text-foreground tabular-nums">
-                        {formatVnd(item.lineTotal)}
-                      </span>
-                    }
-                  />
-                ))}
-              </ShopPackageCard>
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-6">
+            <aside className="min-w-0 space-y-3 lg:col-span-4 lg:col-start-9 lg:row-start-1">
+              {(isAwaitingConfirm || isConfirmed) && (
+                <section
+                  aria-labelledby="seller-actions-heading"
+                  className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
+                >
+                  <div className="border-b border-border pb-3">
+                    <h2 id="seller-actions-heading" className="flex items-center gap-2 text-base font-semibold">
+                      <Store aria-hidden="true" className="size-4 text-primary" />
+                      <span>{t('detail.actions.sectionTitle')}</span>
+                    </h2>
+                  </div>
 
-              <SellerShipmentSection
-                orderStatus={detail.status}
-                orderCarrier={detail.carrier}
-                orderTrackingCode={detail.trackingCode}
-                shipment={shipment}
-                isLoading={shipmentsQuery.isLoading}
-                error={shipmentsQuery.error}
-                isFetching={shipmentsQuery.isFetching}
-                onRefreshShipment={() => void shipmentsQuery.refetch()}
-                onPrintLabel={(target) => printLabelMutation.mutate(target)}
-                isPrintingLabel={printLabelMutation.isPending}
-                onRetryShipment={(target) => retryShipmentMutation.mutate(target)}
-                isRetryingShipment={retryShipmentMutation.isPending}
-                trackingEvents={trackingQuery.data}
-                isTrackingLoading={trackingQuery.isLoading}
-                trackingError={trackingQuery.error}
-                onRetryTracking={() => void trackingQuery.refetch()}
-              />
-
-              <SellerOrderHistoryTimeline history={detail.history ?? []} />
-            </div>
-
-            <aside className="space-y-5 lg:sticky lg:top-20 lg:col-span-4">
-              {/* Khối thao tác nghiệp vụ chính */}
-              <section
-                aria-labelledby="seller-actions-heading"
-                className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
-              >
-                <div className="border-b border-border pb-3">
-                  <h2 id="seller-actions-heading" className="flex items-center gap-2 text-base font-semibold">
-                    <Store aria-hidden="true" className="size-4 text-primary" />
-                    <span>{t('detail.actions.sectionTitle')}</span>
-                  </h2>
-                </div>
-
-                {isAwaitingConfirm ? (
-                  <div className="space-y-3">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {t('detail.actions.confirmHint')}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {canConfirm && (
-                        <Button
-                          type="button"
-                          disabled={isMutating}
-                          onClick={() => confirmMutation.mutate()}
-                          className="w-full"
-                        >
-                          {confirmMutation.isPending && (
-                            <Loader2 aria-hidden="true" className="animate-spin" />
-                          )}
-                          {confirmMutation.isPending
-                            ? t('detail.actions.confirmingButton')
-                            : t('detail.actions.confirmButton')}
-                        </Button>
-                      )}
-                      {canReject && (
+                  {isAwaitingConfirm ? (
+                    <div className="space-y-3">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t('detail.actions.confirmHint')}
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {canConfirm && (
+                          <Button
+                            type="button"
+                            disabled={isMutating}
+                            onClick={() => confirmMutation.mutate()}
+                            className="w-full"
+                          >
+                            {confirmMutation.isPending && (
+                              <Loader2 aria-hidden="true" className="animate-spin" />
+                            )}
+                            {confirmMutation.isPending
+                              ? t('detail.actions.confirmingButton')
+                              : t('detail.actions.confirmButton')}
+                          </Button>
+                        )}
+                        {canReject && (
+                          <Button
+                            type="button"
+                            variant="destructive-outline"
+                            disabled={isMutating}
+                            onClick={() => setReasonDialogMode('reject')}
+                            className="w-full"
+                          >
+                            <XCircle aria-hidden="true" />
+                            {t('detail.actions.rejectButton')}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t('detail.actions.confirmedHint')}
+                      </p>
+                      <div className="flex flex-col gap-2">
                         <Button
                           type="button"
                           variant="destructive-outline"
-                          disabled={isMutating}
-                          onClick={() => setReasonDialogMode('reject')}
+                          disabled={!canCancelBeforePickup || isMutating}
+                          onClick={() => setReasonDialogMode('cancel')}
                           className="w-full"
                         >
                           <XCircle aria-hidden="true" />
-                          {t('detail.actions.rejectButton')}
+                          {t('detail.actions.cancelBeforePickupButton')}
                         </Button>
-                      )}
+
+                        {pickedUpLock && (
+                          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                            {t('detail.actions.cancelLockedByPickup')}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : isConfirmed ? (
-                  <div className="space-y-3">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {t('detail.actions.confirmedHint')}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {canShowQuickPrint && shipment && (
-                        <Button
-                          type="button"
-                          disabled={printLabelMutation.isPending}
-                          onClick={() => printLabelMutation.mutate(shipment)}
-                          className="w-full"
-                        >
-                          {printLabelMutation.isPending ? (
-                            <Loader2 aria-hidden="true" className="animate-spin" />
-                          ) : (
-                            <Printer aria-hidden="true" />
-                          )}
-                          {printLabelMutation.isPending
-                            ? t('shipment.printingLabelButton')
-                            : t('shipment.printLabelButton')}
-                        </Button>
-                      )}
+                  )}
+                </section>
+              )}
 
-                      {canShowQuickRetry && shipment && (
-                        <Button
-                          type="button"
-                          disabled={isMutating}
-                          onClick={() => retryShipmentMutation.mutate(shipment)}
-                          className="w-full"
-                        >
-                          {retryShipmentMutation.isPending ? (
-                            <Loader2 aria-hidden="true" className="animate-spin" />
-                          ) : (
-                            <RefreshCw aria-hidden="true" />
-                          )}
-                          {retryShipmentMutation.isPending
-                            ? t('shipment.retryingButton')
-                            : t('shipment.retryButton')}
-                        </Button>
-                      )}
-
-                      <Button
-                        type="button"
-                        variant="destructive-outline"
-                        disabled={!canCancelBeforePickup || isMutating}
-                        onClick={() => setReasonDialogMode('cancel')}
-                        className="w-full"
-                      >
-                        <XCircle aria-hidden="true" />
-                        {t('detail.actions.cancelBeforePickupButton')}
-                      </Button>
-
-                      {pickedUpLock && (
-                        <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                          {t('detail.actions.cancelLockedByPickup')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : canShowQuickPrint && shipment ? (
-                  <div className="space-y-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={printLabelMutation.isPending}
-                      onClick={() => printLabelMutation.mutate(shipment)}
-                      className="w-full"
-                    >
-                      {printLabelMutation.isPending ? (
-                        <Loader2 aria-hidden="true" className="animate-spin" />
-                      ) : (
-                        <Printer aria-hidden="true" />
-                      )}
-                      {printLabelMutation.isPending
-                        ? t('shipment.printingLabelButton')
-                        : t('shipment.printLabelButton')}
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">{t('detail.actions.noPendingActions')}</p>
-                )}
-              </section>
-
-              {/* Địa chỉ giao hàng đã chụp */}
-              <section
-                aria-labelledby="seller-delivery-address-heading"
-                className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
-              >
-                <div className="border-b border-border pb-2.5">
-                  <h2 id="seller-delivery-address-heading" className="flex items-center gap-2 text-base font-semibold">
-                    <MapPin aria-hidden="true" className="size-4 text-primary" />
-                    <span>{t('detail.deliveryAddress.title')}</span>
-                  </h2>
-                </div>
+              <DisclosurePanel title={t('detail.deliveryAddress.title')} summary={detail.deliveryAddress.contactName} icon={<MapPin />}>
                 <dl className="space-y-2 text-sm">
                   <div>
                     <dt className="text-xs text-muted-foreground">{t('detail.deliveryAddress.recipient')}</dt>
@@ -652,18 +535,9 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
                     </dd>
                   </div>
                 </dl>
-              </section>
+              </DisclosurePanel>
 
-              {/* Tổng kết tài chính gói hàng */}
-              <section
-                aria-labelledby="seller-summary-heading"
-                className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
-              >
-                <div className="border-b border-border pb-2.5">
-                  <h2 id="seller-summary-heading" className="text-base font-semibold">
-                    {t('detail.summary.title')}
-                  </h2>
-                </div>
+              <DisclosurePanel title={t('detail.summary.title')} summary={formatVnd(detail.totalAmount)}>
                 <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm tabular-nums">
                   <dt className="text-muted-foreground">{t('detail.summary.itemsAmount')}</dt>
                   <dd className="text-right font-medium">{formatVnd(detail.itemsAmount)}</dd>
@@ -686,8 +560,55 @@ export function SellerOrderDetailPage({ onOpenLabel }: SellerOrderDetailPageProp
                     })}
                   </dd>
                 </dl>
-              </section>
+              </DisclosurePanel>
             </aside>
+
+            <div className="min-w-0 space-y-4 lg:col-span-8 lg:col-start-1 lg:row-start-1">
+              <ShopPackageCard
+                shop={{ id: detail.shopId, name: shopDisplayName }}
+                shopHref={null}
+                code={{ value: detail.sellerOrderId, display: detail.sellerOrderCode }}
+              >
+                <OrderPackageItems items={(detail.items ?? []).map((item) => (
+                  <ShopPackageItem
+                    key={item.orderItemId}
+                    name={item.productName}
+                    variantLabel={item.variantLabel}
+                    imageUrl={item.imageRef}
+                    quantity={item.quantity}
+                    unitPrice={item.unitPrice}
+                    end={
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
+                        {formatVnd(item.lineTotal)}
+                      </span>
+                    }
+                  />
+                ))} />
+              </ShopPackageCard>
+
+              <SellerShipmentSection
+                orderStatus={detail.status}
+                orderCarrier={detail.carrier}
+                orderTrackingCode={detail.trackingCode}
+                shipment={shipment}
+                isLoading={shipmentsQuery.isLoading}
+                error={shipmentsQuery.error}
+                isFetching={shipmentsQuery.isFetching}
+                onRefreshShipment={() => void shipmentsQuery.refetch()}
+                onPrintLabel={(target) => printLabelMutation.mutate(target)}
+                isPrintingLabel={printLabelMutation.isPending}
+                onRetryShipment={(target) => retryShipmentMutation.mutate(target)}
+                isRetryingShipment={retryShipmentMutation.isPending}
+                trackingEvents={trackingQuery.data?.events}
+                deliveryAttempts={trackingQuery.data?.deliveryAttempts}
+                deliveryAttemptLimit={trackingQuery.data?.deliveryAttemptLimit}
+                isTrackingLoading={trackingQuery.isLoading}
+                trackingError={trackingQuery.error}
+                onRetryTracking={() => void trackingQuery.refetch()}
+              />
+
+              <SellerOrderHistoryTimeline history={detail.history ?? []} />
+            </div>
           </div>
 
           <AuditReasonDialog

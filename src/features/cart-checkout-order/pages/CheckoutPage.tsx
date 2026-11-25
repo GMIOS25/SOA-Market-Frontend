@@ -23,6 +23,7 @@ import {
   ShopPackageSummary,
 } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuthSession } from '@/lib/auth/session'
 import { formatTime, formatVnd } from '@/lib/format'
@@ -47,6 +48,7 @@ import {
 import { AddAddressDialog } from '../components/AddAddressDialog'
 import { CheckoutSteps } from '../components/CheckoutSteps'
 import { InsufficientStockDialog } from '../components/InsufficientStockDialog'
+import { OrderPackageItems } from '../components/OrderPackageItems'
 import { DesktopOrderSummary, MobileStickyBottomBar } from '../components/StickySummaryBar'
 
 export type CheckoutPageProps = {
@@ -80,6 +82,7 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
+  const [addressOptionsOpen, setAddressOptionsOpen] = useState(false)
   const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>('MOCK_PAY')
   const [removingShopId, setRemovingShopId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<ApiError | Error | null>(null)
@@ -182,7 +185,12 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
 
   function handleScrollToAddress() {
     addressSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
-    setAddressModalOpen(true)
+    if (addresses.length <= 1) {
+      setAddressModalOpen(true)
+      return
+    }
+    setAddressOptionsOpen(true)
+    addressSectionRef.current?.focus({ preventScroll: true })
   }
 
   function handlePlaceOrder() {
@@ -248,8 +256,9 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
           {/* 1. Địa chỉ giao hàng + modal thêm tại chỗ */}
           <section
             ref={addressSectionRef}
+            tabIndex={-1}
             aria-labelledby="checkout-address-heading"
-            className="rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
+            className="scroll-mt-24 rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
           >
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
               <h2 id="checkout-address-heading" className="flex items-center gap-2 text-lg font-semibold">
@@ -291,50 +300,79 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
                 </Button>
               </div>
             ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {addresses.map((addr) => {
-                  const isSelected = selectedAddress?.addressId === addr.addressId
-                  return (
-                    <label
-                      key={addr.addressId}
-                      className={cn(
-                        'flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 text-sm transition-colors',
-                        isSelected
-                          ? 'border-primary bg-primary-soft/50 ring-1 ring-primary'
-                          : 'border-border bg-card hover:bg-background',
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="checkout-delivery-address"
-                        aria-label={t('checkout.address.selectAddress', {
-                          receiver: addr.receiver,
-                          line: addr.line,
-                        })}
-                        checked={isSelected}
-                        onChange={() => {
-                          setSelectedAddressId(addr.addressId)
-                          setSubmitError(null)
-                        }}
-                        className="mt-1 size-4 shrink-0 accent-primary"
-                      />
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-foreground">{addr.receiver}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{addr.phone}</span>
-                          {addr.isDefault && (
-                            <span className="rounded-full border border-status-success-border bg-status-success px-2 py-0.5 text-[11px] font-medium text-status-success-foreground">
-                              {t('checkout.address.defaultBadge')}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
-                          {addr.line}, {addr.ward}, {addr.district}, {addr.province}
-                        </p>
+              <div className="mt-4 space-y-3">
+                {selectedAddress && (
+                  <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary-soft/40 p-3.5 text-sm">
+                    <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-foreground">{selectedAddress.receiver}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{selectedAddress.phone}</span>
+                        {selectedAddress.isDefault && (
+                          <span className="rounded-full border border-status-success-border bg-status-success px-2 py-0.5 text-[11px] font-medium text-status-success-foreground">
+                            {t('checkout.address.defaultBadge')}
+                          </span>
+                        )}
                       </div>
-                    </label>
-                  )
-                })}
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {selectedAddress.line}, {selectedAddress.ward}, {selectedAddress.district}, {selectedAddress.province}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {addresses.length > 1 && (
+                  <DisclosurePanel
+                    title={t('checkout.address.chooseOther')}
+                    open={addressOptionsOpen}
+                    onOpenChange={setAddressOptionsOpen}
+                  >
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {addresses.map((addr) => {
+                        const isSelected = selectedAddress?.addressId === addr.addressId
+                        return (
+                          <label
+                            key={addr.addressId}
+                            className={cn(
+                              'flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 text-sm transition-colors',
+                              isSelected
+                                ? 'border-primary bg-primary-soft/50 ring-1 ring-primary'
+                                : 'border-border bg-card hover:bg-background',
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="checkout-delivery-address"
+                              aria-label={t('checkout.address.selectAddress', {
+                                receiver: addr.receiver,
+                                line: addr.line,
+                              })}
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedAddressId(addr.addressId)
+                                setSubmitError(null)
+                              }}
+                              className="mt-1 size-4 shrink-0 accent-primary"
+                            />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-foreground">{addr.receiver}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{addr.phone}</span>
+                                {addr.isDefault && (
+                                  <span className="rounded-full border border-status-success-border bg-status-success px-2 py-0.5 text-[11px] font-medium text-status-success-foreground">
+                                    {t('checkout.address.defaultBadge')}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs leading-relaxed text-muted-foreground">
+                                {addr.line}, {addr.ward}, {addr.district}, {addr.province}
+                              </p>
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </DisclosurePanel>
+                )}
               </div>
             )}
           </section>
@@ -488,7 +526,7 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
                         />
                       }
                     >
-                      {items.map((item) => (
+                      <OrderPackageItems items={items.map((item) => (
                         <ShopPackageItem
                           key={item.cartItemId}
                           name={item.productName}
@@ -503,7 +541,7 @@ export function CheckoutPage({ onRedirect = redirectToPaymentUrl }: CheckoutPage
                             </span>
                           }
                         />
-                      ))}
+                      ))} />
                     </ShopPackageCard>
                   )
                 })}

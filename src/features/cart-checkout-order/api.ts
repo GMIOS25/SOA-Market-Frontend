@@ -1,9 +1,9 @@
-import { authFetch } from '@/api/auth-fetch'
 import { createApiClient } from '@/api/client'
-import { ApiError, networkError, toApiError, unwrap } from '@/api/errors'
+import { ApiError, unwrap } from '@/api/errors'
 import type { SvcIdn, SvcOrd, SvcSel } from '@/api/generated'
 import { idempotencyHeaders } from '@/api/idempotency'
-import { env } from '@/lib/env'
+import { getShipmentTimeline, listShipments, type TrackingEvent } from '@/features/payment-shipping/api'
+import { pickActiveForwardShipment, type SellerShipmentView } from './seller-orders-api'
 import type { ReasonActionRequestBody, SellerOrderActionResult } from './seller-orders-api'
 
 export type CartView = SvcOrd.components['schemas']['CartView']
@@ -33,33 +33,10 @@ export type PartialRefundBreakdownView = SvcOrd.components['schemas']['PartialRe
 export type PartialRefundSellerOrderItem = SvcOrd.components['schemas']['PartialRefundSellerOrderItem']
 export type ListOrdersParams = SvcOrd.operations['list-orders']['parameters']['query']
 
-export type ShipmentTrackingEvent = {
-  eventId: string
-  status: string
-  note?: string
-  location?: string
-  occurredAt: string
-  receivedAt?: string
-}
-
-export type ShipmentSummary = {
-  shipmentId: string
-  sellerOrderId: string
-  kind?: string
-  carrier: string
-  trackingCode?: string
-  status: string
-  fee?: number
-  etaAt?: string
-  deliveryAttempts?: number
-  failureReason?: string
-  updatedAt?: string
-}
-
-export type ShipmentTrackingResult = {
-  shipment: ShipmentSummary | null
-  events: ShipmentTrackingEvent[]
-}
+export type ShipmentTrackingEvent = Omit<TrackingEvent, 'receivedAt' | 'applied'> &
+  Partial<Pick<TrackingEvent, 'receivedAt' | 'applied'>>
+export type ShipmentSummary = SellerShipmentView & { deliveryAttemptLimit?: number }
+export type ShipmentTrackingResult = { shipment: ShipmentSummary | null; events: ShipmentTrackingEvent[] }
 
 export type PublicShopDTO = SvcSel.components['schemas']['PublicShopDTO']
 export type AddressDTO = SvcIdn.components['schemas']['AddressDTO']
@@ -274,133 +251,24 @@ export function apiConfirmSellerOrderReceipt(sellerOrderId: string): Promise<Sel
   )
 }
 
-async function fetchJsonWithAuth(url: string): Promise<unknown> {
-  let response: Response
-  try {
-    response = await authFetch(new Request(url, { method: 'GET' }))
-  } catch {
-    throw networkError()
-  }
-
-  let body: unknown = null
-  try {
-    body = await response.json()
-  } catch {
-    body = null
-  }
-
-  if (!response.ok) {
-    throw toApiError(body, response)
-  }
-
-  return body
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined
-}
-
-function asNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function normalizeShipmentSummary(raw: unknown): ShipmentSummary | null {
-  const obj = asRecord(raw)
-  if (!obj) return null
-  const shipmentId = asString(obj.shipmentId) ?? asString(obj.id)
-  if (!shipmentId) return null
-
-  return {
-    shipmentId,
-    sellerOrderId: asString(obj.sellerOrderId) ?? '',
-    kind: asString(obj.kind),
-    carrier: asString(obj.carrier) ?? '',
-    trackingCode: asString(obj.trackingCode),
-    status: asString(obj.status) ?? 'CREATED',
-    fee: asNumber(obj.fee),
-    etaAt: asString(obj.etaAt),
-    deliveryAttempts: asNumber(obj.deliveryAttempts),
-    failureReason: asString(obj.failureReason),
-    updatedAt: asString(obj.updatedAt),
-  }
-}
-
-function normalizeTrackingEvent(raw: unknown, index: number): ShipmentTrackingEvent | null {
-  const obj = asRecord(raw)
-  if (!obj) return null
-  const status = asString(obj.status)
-  const occurredAt = asString(obj.occurredAt)
-  if (!status || !occurredAt) return null
-
-  return {
-    eventId: asString(obj.eventId) ?? asString(obj.id) ?? `${status}-${occurredAt}-${index}`,
-    status,
-    note: asString(obj.note),
-    location: asString(obj.location),
-    occurredAt,
-    receivedAt: asString(obj.receivedAt),
-  }
-}
-
-function extractArray(body: unknown, keys: readonly string[]): unknown[] {
-  if (Array.isArray(body)) return body
-  const obj = asRecord(body)
-  if (!obj) return []
-  for (const key of keys) {
-    if (Array.isArray(obj[key])) return obj[key] as unknown[]
-  }
-  return []
-}
-
-/**
- * Tải thông tin vận đơn và hành trình từ SVC-SHP cho một gói `SellerOrder`.
- * Khi SVC-SHP lỗi (502/503/504), trả ApiError để riêng khối tracking hiển thị `<ServiceFallbackBanner />` (NFR-REL-005).
- */
 export async function apiGetSellerOrderTracking(sellerOrderId: string): Promise<ShipmentTrackingResult> {
-  const listUrl = `${env.apiBaseUrl}/v1/shipments?sellerOrderId=${encodeURIComponent(sellerOrderId)}`
-  const listBody = await fetchJsonWithAuth(listUrl)
-  const candidates = extractArray(listBody, ['items', 'shipments', 'data'])
-    .map(normalizeShipmentSummary)
-    .filter((item): item is ShipmentSummary => item !== null)
-
-  const shipment =
-    candidates.find((item) => item.kind === 'FORWARD' && item.status !== 'CANCELLED') ??
-    candidates.find((item) => item.kind === 'FORWARD') ??
-    candidates[0] ??
-    null
-
-  if (!shipment) {
-    return { shipment: null, events: [] }
+  const shipment = pickActiveForwardShipment(await listShipments(sellerOrderId, 'buyer'))
+  if (!shipment || shipment.status === 'CREATE_FAILED' || shipment.status === 'PENDING_CREATION') {
+    return { shipment, events: [] }
   }
-
-  const trackingUrl = `${env.apiBaseUrl}/v1/shipments/${encodeURIComponent(shipment.shipmentId)}/tracking`
-  const trackingBody = await fetchJsonWithAuth(trackingUrl)
-  const trackingObj = asRecord(trackingBody)
-
-  const mergedShipment =
-    normalizeShipmentSummary(trackingObj?.shipment) ??
-    (trackingObj && asString(trackingObj.status)
-      ? {
-          ...shipment,
-          status: asString(trackingObj.status) ?? shipment.status,
-          carrier: asString(trackingObj.carrier) ?? shipment.carrier,
-          trackingCode: asString(trackingObj.trackingCode) ?? shipment.trackingCode,
-          etaAt: asString(trackingObj.etaAt) ?? shipment.etaAt,
-          deliveryAttempts: asNumber(trackingObj.deliveryAttempts) ?? shipment.deliveryAttempts,
-          failureReason: asString(trackingObj.failureReason) ?? shipment.failureReason,
-        }
-      : shipment)
-
-  const rawEvents = extractArray(trackingBody, ['events', 'trackingEvents', 'items', 'data'])
-  const events = rawEvents
-    .map((ev, index) => normalizeTrackingEvent(ev, index))
-    .filter((ev): ev is ShipmentTrackingEvent => ev !== null)
-
-  return { shipment: mergedShipment, events }
+  const tracking = await getShipmentTimeline(shipment.shipmentId)
+  return {
+    shipment: {
+      ...shipment,
+      status: tracking.status ?? shipment.status,
+      carrier: tracking.carrier ?? shipment.carrier,
+      trackingCode: tracking.trackingCode ?? shipment.trackingCode,
+      etaAt: tracking.etaAt ?? shipment.etaAt,
+      deliveryAttempts: tracking.deliveryAttempts,
+      deliveryAttemptLimit: tracking.deliveryAttemptLimit,
+    },
+    events: tracking.events,
+  }
 }
 
 export * from './seller-orders-api'

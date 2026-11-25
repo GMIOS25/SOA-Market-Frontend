@@ -5,12 +5,11 @@ import {
   CheckCircle2,
   CreditCard,
   History,
-  Info,
   MapPin,
   MessageSquareWarning,
   PackageX,
   RefreshCw,
-  ShieldCheck,
+  RotateCcw,
   Star,
   X,
 } from 'lucide-react'
@@ -24,14 +23,15 @@ import {
   ServiceFallbackBanner,
   ShopPackageCard,
   ShopPackageItem,
-  ShopPackageSummary,
   SlaCountdownPill,
 } from '@/components/shared'
 import { Button } from '@/components/ui/button'
+import { DisclosurePanel } from '@/components/ui/disclosure-panel'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { formatDateTime, formatDateTimeFull, formatVnd } from '@/lib/format'
+import { computeRefundBreakdown } from '@/lib/refund'
 import {
   apiBuyerCancelSellerOrder,
   apiConfirmSellerOrderReceipt,
@@ -43,6 +43,7 @@ import {
 import { CancelSellerOrderDialog } from '../components/CancelSellerOrderDialog'
 import { ConfirmReceiptDialog } from '../components/ConfirmReceiptDialog'
 import { OrderActionErrorAlert } from '../components/OrderActionErrorAlert'
+import { OrderPackageItems } from '../components/OrderPackageItems'
 import {
   ShipmentTrackingPanel,
   type ExternalTimelineRenderProps,
@@ -98,6 +99,7 @@ function formatCancelCause(
  */
 export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetailPageProps) {
   const { t } = useTranslation('orders')
+  const { t: sharedText } = useTranslation('shared')
   const { id } = useParams()
   const queryClient = useQueryClient()
 
@@ -176,6 +178,13 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
   const refundBreakdown = useMemo(
     () => mapPartialRefundLines(order?.partialRefundBreakdown, sellerOrders, shopNameMap),
     [order?.partialRefundBreakdown, sellerOrders, shopNameMap],
+  )
+  const refundTotals = useMemo(
+    () =>
+      refundBreakdown.refunds.length > 0
+        ? computeRefundBreakdown(refundBreakdown.paidTotal, refundBreakdown.refunds)
+        : null,
+    [refundBreakdown],
   )
 
   if (orderQuery.isLoading) {
@@ -262,9 +271,15 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
             />
             <StatusBadge status={order.status} />
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
-            {t('detail.createdAt', { datetime: formatDateTime(order.createdAt) })}
-          </p>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 tabular-nums">
+            <p className="text-xs text-muted-foreground">
+              {t('detail.createdAt', { datetime: formatDateTime(order.createdAt) })}
+            </p>
+            <p className="text-sm">
+              <span className="mr-1.5 text-muted-foreground">{t('detail.sidebar.grandTotal')}</span>
+              <strong className="text-base text-price">{formatVnd(order.grandTotal)}</strong>
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -274,6 +289,14 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
               startedAt={order.createdAt}
               deadline={order.paymentDueAt}
             />
+          )}
+          {order.status === 'PENDING_PAYMENT' && (
+            <Button asChild variant="cta" size="sm">
+              <Link to={`/checkout/result?orderId=${encodeURIComponent(order.orderId)}`}>
+                <CreditCard aria-hidden="true" />
+                {t('detail.actions.payNow')}
+              </Link>
+            </Button>
           )}
           <Button
             type="button"
@@ -308,20 +331,15 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
         </div>
       )}
 
-      {/* Bảng đối chiếu hoàn tiền một phần — tự ẩn khi refunds = [] (FR-ORD-009) */}
-      <PartialRefundBreakdown paidTotal={refundBreakdown.paidTotal} refunds={refundBreakdown.refunds} />
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            {t('detail.packagesHeading', { count: sellerOrders.length })}
+          </h2>
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-        <div className="space-y-4 lg:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">
-              {t('detail.packagesHeading', { count: sellerOrders.length })}
-            </h2>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
-              <span>{t('detail.snapshotNotice')}</span>
-            </p>
-          </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+          <div className="space-y-4 lg:col-span-8">
 
           {sellerOrders.map((so) => {
             const shopName = resolveShopName(so)
@@ -336,6 +354,14 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
               PAYMENT_EXPIRED: t('detail.cancelCauses.PAYMENT_EXPIRED'),
             })
             const isShippingLocked = so.status === 'CONFIRMED' || so.status === 'SHIPPING'
+            const showComplaintHold = so.status === 'DELIVERED' && so.hasOpenComplaint
+            const showCancelReason = (so.status === 'CANCELLED' || so.status === 'DELIVERY_FAILED') &&
+              Boolean(cancelCauseText || so.cancelReason)
+            const reviewItem = items.length === 1 ? items[0] : undefined
+            const reviewUrl = reviewItem
+              ? `/account/reviews?orderItemId=${encodeURIComponent(reviewItem.orderItemId)}&productId=${encodeURIComponent(reviewItem.productId)}`
+              : `/account/reviews?sellerOrderId=${encodeURIComponent(so.sellerOrderId)}`
+            const hasActions = canCancel || isShippingLocked || so.status === 'DELIVERED' || so.status === 'COMPLETED'
 
             const slaNode =
               so.status === 'DELIVERED' && so.completeDueAt && !so.hasOpenComplaint ? (
@@ -359,11 +385,10 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                 key={so.sellerOrderId}
                 shop={{ id: so.shopId, name: shopName }}
                 status={so.status}
-                code={{ value: so.sellerOrderCode, display: so.sellerOrderCode }}
                 sla={slaNode}
-                notice={
+                notice={showComplaintHold || showCancelReason ? (
                   <div className="space-y-3">
-                    {so.status === 'DELIVERED' && so.hasOpenComplaint && (
+                    {showComplaintHold && (
                       <div
                         role="status"
                         className="flex items-start gap-2 rounded-md border border-status-warning-border bg-status-warning px-3 py-2 text-xs text-status-warning-foreground"
@@ -372,64 +397,60 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                         <span>{t('detail.openComplaintHoldNotice')}</span>
                       </div>
                     )}
-
-                    {so.status === 'DELIVERED' && !so.hasOpenComplaint && so.completeDueAt && (
-                      <div
-                        role="status"
-                        className="flex items-start gap-2 rounded-md border border-status-info-border bg-status-info px-3 py-2 text-xs text-status-info-foreground"
-                      >
-                        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                        <span>
-                          {t('detail.autoCompleteBanner', {
-                            deadline: formatDateTime(so.completeDueAt),
-                          })}
-                        </span>
+                    {showCancelReason && (
+                      <div className="space-y-0.5 rounded-md border border-status-danger-border bg-status-danger px-3 py-2 text-xs text-status-danger-foreground">
+                        {cancelCauseText && (
+                          <p className="font-medium">
+                            {t('detail.cancelCauseLabel')}: {cancelCauseText}
+                          </p>
+                        )}
+                        {so.cancelReason && (
+                          <p>
+                            {t('detail.cancelReasonLabel')}: {so.cancelReason}
+                          </p>
+                        )}
                       </div>
                     )}
-
-                    {(so.status === 'CANCELLED' || so.status === 'DELIVERY_FAILED') &&
-                      (cancelCauseText || so.cancelReason) && (
-                        <div className="space-y-0.5 rounded-md border border-status-danger-border bg-status-danger px-3 py-2 text-xs text-status-danger-foreground">
-                          {cancelCauseText && (
-                            <p className="font-medium">
-                              {t('detail.cancelCauseLabel')}: {cancelCauseText}
-                            </p>
-                          )}
-                          {so.cancelReason && (
-                            <p>
-                              {t('detail.cancelReasonLabel')}: {so.cancelReason}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                    {isShippingLocked && (
-                      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                        <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-                        <span>{t('detail.actions.cannotCancelHint')}</span>
-                      </p>
-                    )}
-
-                    <ShipmentTrackingPanel
-                      sellerOrderId={so.sellerOrderId}
-                      sellerOrderStatus={so.status}
-                      carrier={so.carrier || undefined}
-                      trackingCode={so.trackingCode || undefined}
-                      shippingDegraded={order.shippingDegraded}
-                      onRetryOrder={() => void orderQuery.refetch()}
-                      isOrderFetching={orderQuery.isFetching}
-                      renderExternalTimeline={renderExternalTimeline}
-                    />
                   </div>
-                }
-                footer={
-                  <ShopPackageSummary
-                    itemsAmount={so.itemsAmount}
-                    shippingFee={so.shippingFee}
+                ) : undefined}
+                afterItems={
+                  <ShipmentTrackingPanel
+                    sellerOrderId={so.sellerOrderId}
+                    sellerOrderStatus={so.status}
                     carrier={so.carrier || undefined}
+                    trackingCode={so.trackingCode || undefined}
+                    showCancelPolicy={isShippingLocked}
+                    shippingDegraded={order.shippingDegraded}
+                    onRetryOrder={() => void orderQuery.refetch()}
+                    isOrderFetching={orderQuery.isFetching}
+                    renderExternalTimeline={renderExternalTimeline}
                   />
                 }
-                actions={
+                footer={
+                  <DisclosurePanel
+                    title={t('detail.packageTotal')}
+                    summary={formatVnd(so.totalAmount)}
+                    variant="plain"
+                    inlineSummary
+                    className="sm:max-w-xs"
+                  >
+                    <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-xs tabular-nums">
+                      <dt>{sharedText('package.itemsAmount')}</dt>
+                      <dd>{formatVnd(so.itemsAmount)}</dd>
+                      <dt>{sharedText('package.shippingFee')}</dt>
+                      <dd>{formatVnd(so.shippingFee)}</dd>
+                      {so.discountAmount > 0 && <>
+                        <dt>{t('detail.discount')}</dt>
+                        <dd>− {formatVnd(so.discountAmount)}</dd>
+                      </>}
+                    </dl>
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {t('detail.packageCode')}
+                      <CopyableId value={so.sellerOrderCode} label={t('detail.packageCode')} />
+                    </p>
+                  </DisclosurePanel>
+                }
+                actions={hasActions ? (
                   <>
                     {canCancel && (
                       <Button
@@ -478,16 +499,16 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
 
                     {so.status === 'COMPLETED' && (
                       <Button asChild variant="outline" size="sm">
-                        <Link to={`/account/reviews?sellerOrderId=${encodeURIComponent(so.sellerOrderId)}`}>
+                        <Link to={reviewUrl}>
                           <Star aria-hidden="true" />
                           {t('detail.actions.reviewPackage')}
                         </Link>
                       </Button>
                     )}
                   </>
-                }
+                ) : undefined}
               >
-                {items.map((item) => (
+                <OrderPackageItems items={items.map((item) => (
                   <ShopPackageItem
                     key={item.orderItemId}
                     name={item.productName}
@@ -495,13 +516,14 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                     imageUrl={item.imageRef}
                     quantity={item.quantity}
                     unitPrice={item.unitPrice}
+                    quantityOnly={item.quantity === 1 && item.unitPrice === item.lineTotal}
                     href={item.productId ? `/products/${item.productId}` : undefined}
                     end={
                       <div className="flex flex-col items-end gap-1.5">
                         <span className="text-sm font-semibold text-foreground tabular-nums">
                           {formatVnd(item.lineTotal)}
                         </span>
-                        {(so.status === 'DELIVERED' || so.status === 'COMPLETED') && (
+                        {so.status === 'DELIVERED' && (
                           <Button asChild variant="ghost" size="xs">
                             <Link
                               to={`/account/reviews?orderItemId=${encodeURIComponent(item.orderItemId)}&productId=${encodeURIComponent(item.productId)}`}
@@ -514,57 +536,22 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                       </div>
                     }
                   />
-                ))}
+                ))} />
               </ShopPackageCard>
             )
           })}
         </div>
 
-        {/* Cột phải: Địa chỉ nhận hàng (snapshot) + Thanh toán + Lịch sử trạng thái */}
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:col-span-4">
-          <section
-            aria-labelledby="order-address-heading"
-            className="rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-              <h2 id="order-address-heading" className="flex items-center gap-2 text-base font-semibold">
-                <MapPin aria-hidden="true" className="size-4 text-primary" />
-                <span>{t('detail.sidebar.addressTitle')}</span>
-              </h2>
-              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {t('detail.sidebar.addressSnapshotBadge')}
-              </span>
-            </div>
-            <div className="mt-3 space-y-1 text-sm">
-              <p className="font-semibold text-foreground">{order.deliveryAddress.contactName}</p>
-              <p className="font-mono text-xs text-muted-foreground">{order.deliveryAddress.phone}</p>
-              <p className="text-muted-foreground">
-                {order.deliveryAddress.line}, {order.deliveryAddress.ward}, {order.deliveryAddress.district},{' '}
-                {order.deliveryAddress.province}
-              </p>
-            </div>
-          </section>
-
-          <section
-            aria-labelledby="order-payment-heading"
-            className="rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
-          >
-            <h2 id="order-payment-heading" className="flex items-center gap-2 border-b border-border pb-3 text-base font-semibold">
-              <CreditCard aria-hidden="true" className="size-4 text-primary" />
-              <span>{t('detail.sidebar.paymentTitle')}</span>
-            </h2>
-
-            {order.paymentDegraded && (
-              <div className="mt-3">
-                <ServiceFallbackBanner
-                  message={t('detail.tracking.paymentDegradedBanner')}
-                  onRetry={() => void orderQuery.refetch()}
-                  isRetrying={orderQuery.isFetching}
-                />
-              </div>
-            )}
-
-            <dl className="mt-3 space-y-2 text-sm tabular-nums">
+        <aside className="min-w-0 space-y-3 lg:col-span-4">
+          {order.paymentDegraded && (
+            <ServiceFallbackBanner
+              message={t('detail.tracking.paymentDegradedBanner')}
+              onRetry={() => void orderQuery.refetch()}
+              isRetrying={orderQuery.isFetching}
+            />
+          )}
+          <DisclosurePanel title={t('detail.sidebar.paymentTitle')} icon={<CreditCard />}>
+            <dl className="space-y-2 rounded-lg bg-primary-soft p-3.5 text-sm tabular-nums">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t('detail.sidebar.itemsTotal')}</dt>
                 <dd className="font-medium text-foreground">{formatVnd(order.itemsTotal)}</dd>
@@ -573,6 +560,21 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                 <dt className="text-muted-foreground">{t('detail.sidebar.shippingTotal')}</dt>
                 <dd className="font-medium text-foreground">{formatVnd(order.shippingTotal)}</dd>
               </div>
+              {refundTotals && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">{t('detail.refundDisclosure')}</dt>
+                    <dd className="font-medium text-status-danger-foreground">
+                      − {formatVnd(refundTotals.refundedTotal)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="font-semibold text-foreground">{t('detail.sidebar.grandTotal')}</dt>
+                    <dd className="font-bold text-price">{formatVnd(refundTotals.remaining)}</dd>
+                  </div>
+                </>
+              )}
               {order.payment && (
                 <>
                   <Separator className="my-2" />
@@ -601,51 +603,69 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                   )}
                 </>
               )}
-              <Separator className="my-2" />
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="font-semibold text-foreground">{t('detail.sidebar.grandTotal')}</dt>
-                <dd className="text-lg font-bold text-price">{formatVnd(order.grandTotal)}</dd>
-              </div>
             </dl>
+          </DisclosurePanel>
 
-            {order.status === 'PENDING_PAYMENT' && order.payment?.paymentUrl && (
-              <Button asChild variant="cta" size="cta" className="mt-4 w-full">
-                <a href={order.payment.paymentUrl}>{t('detail.actions.payNow')}</a>
-              </Button>
-            )}
-          </section>
+          {refundBreakdown.refunds.length > 0 && (
+            <DisclosurePanel
+              title={t('detail.refundDisclosure')}
+              summary={t('detail.refundSummary', { count: refundBreakdown.refunds.length })}
+              icon={<RotateCcw />}
+            >
+              <PartialRefundBreakdown
+                paidTotal={refundBreakdown.paidTotal}
+                refunds={refundBreakdown.refunds}
+                className="border-l-0 p-3.5"
+              />
+            </DisclosurePanel>
+          )}
 
-          <section
-            aria-labelledby="order-history-heading"
-            className="rounded-lg border border-border bg-card p-4 shadow-xs sm:p-5"
+          <DisclosurePanel
+            title={t('detail.sidebar.addressTitle')}
+            summary={order.deliveryAddress.contactName}
+            icon={<MapPin />}
           >
-            <h2 id="order-history-heading" className="flex items-center gap-2 border-b border-border pb-3 text-base font-semibold">
-              <History aria-hidden="true" className="size-4 text-primary" />
-              <span>{t('detail.sidebar.historyTitle')}</span>
-            </h2>
-            {historyList.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground">{t('detail.sidebar.historyEmpty')}</p>
-            ) : (
-              <ol className="mt-3 space-y-2.5 border-l border-border pl-3.5 text-xs">
-                {historyList.map((entry) => (
-                  <li key={entry.historyId} className="space-y-0.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <StatusBadge status={entry.toStatus} />
-                      <time
-                        dateTime={entry.at}
-                        title={formatDateTimeFull(entry.at)}
-                        className="text-muted-foreground tabular-nums"
-                      >
-                        {formatDateTime(entry.at)}
-                      </time>
-                    </div>
-                    {entry.note && <p className="text-muted-foreground">{entry.note}</p>}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+            <div className="space-y-1 rounded-lg bg-primary-soft p-3.5 text-sm">
+              <p className="font-semibold text-foreground">{order.deliveryAddress.contactName}</p>
+              <p className="font-mono text-xs text-muted-foreground">{order.deliveryAddress.phone}</p>
+              <p className="text-muted-foreground">
+                {order.deliveryAddress.line}, {order.deliveryAddress.ward}, {order.deliveryAddress.district},{' '}
+                {order.deliveryAddress.province}
+              </p>
+            </div>
+          </DisclosurePanel>
+
+          <DisclosurePanel
+            title={t('detail.sidebar.historyTitle')}
+            summary={t('detail.historySummary', { count: historyList.length })}
+            icon={<History />}
+          >
+            <div className="rounded-lg bg-primary-soft p-3.5">
+              {historyList.length === 0 ? (
+                <p className="text-xs text-muted-foreground">{t('detail.sidebar.historyEmpty')}</p>
+              ) : (
+                <ol className="space-y-2.5 border-l border-border pl-3.5 text-xs">
+                  {historyList.map((entry) => (
+                    <li key={entry.historyId} className="space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge status={entry.toStatus} />
+                        <time
+                          dateTime={entry.at}
+                          title={formatDateTimeFull(entry.at)}
+                          className="text-muted-foreground tabular-nums"
+                        >
+                          {formatDateTime(entry.at)}
+                        </time>
+                      </div>
+                      {entry.note && <p className="text-muted-foreground">{entry.note}</p>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </DisclosurePanel>
         </aside>
+        </div>
       </div>
 
       <CancelSellerOrderDialog

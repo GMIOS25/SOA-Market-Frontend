@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router'
 import { loginPathFor } from '@/app/redirects'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getAuthSession, subscribeAuthSession } from '@/lib/auth/session'
+import { env } from '@/lib/env'
 import { queryClient } from '@/lib/query-client'
+
+const MockControlPanel = lazy(async () => ({
+  default: (await import('@/features/payment-shipping/MockControlPanel')).MockControlPanel,
+}))
 
 /**
  * Phản ứng toàn cục khi phiên thay đổi:
@@ -43,6 +48,7 @@ export function RootLayout() {
       <SessionWatcher />
       <ScrollRestoration />
       <Outlet />
+      {env.demoMode && <Suspense fallback={null}><MockControlPanel /></Suspense>}
     </TooltipProvider>
   )
 }

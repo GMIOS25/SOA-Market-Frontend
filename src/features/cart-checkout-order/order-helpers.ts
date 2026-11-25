@@ -4,7 +4,6 @@ import {
   fallbackShopName,
   type BuyerSellerOrderDetailView,
   type PartialRefundBreakdownView,
-  type ShipmentTrackingEvent,
 } from './api'
 
 export const ORDER_STATUS_FILTER_VALUES = ['ALL', 'PENDING_PAYMENT', 'PAID', 'COMPLETED', 'CANCELLED'] as const
@@ -166,20 +165,4 @@ export function shouldFetchShipmentTracking(
 ): boolean {
   if (shippingDegraded) return false
   return Boolean(so.trackingCode) || TRACKABLE_STATUSES.has(so.status)
-}
-
-/**
- * Sắp xếp sự kiện hành trình theo `occurredAt` mới nhất lên đầu (chống lệch thứ tự webhook `BR-SHP-03`).
- */
-export function sortTrackingEvents(events: readonly ShipmentTrackingEvent[]): ShipmentTrackingEvent[] {
-  return [...events].sort((a, b) => {
-    const timeA = Date.parse(a.occurredAt)
-    const timeB = Date.parse(b.occurredAt)
-    if (Number.isFinite(timeA) && Number.isFinite(timeB) && timeA !== timeB) {
-      return timeB - timeA
-    }
-    const recA = a.receivedAt ? Date.parse(a.receivedAt) : 0
-    const recB = b.receivedAt ? Date.parse(b.receivedAt) : 0
-    return recB - recA
-  })
 }

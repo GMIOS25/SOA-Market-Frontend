@@ -195,6 +195,29 @@ describe('portal rendering by role', () => {
     expect(await render('/admin/exceptions', ['BUYER'])).toContain(FORBIDDEN)
   })
 
+  it('seller and admin can open T3-07 catalog/inventory/category/moderation routes with no placeholder left', async () => {
+    for (const sellerPath of ['/seller/products', '/seller/products/new', '/seller/products/prd-1/edit', '/seller/inventory']) {
+      const html = await render(sellerPath, ['BUYER', 'SELLER'])
+      expect(html).not.toContain(FORBIDDEN)
+      expect(html).not.toContain('T3-07')
+    }
+    expect(await render('/seller/products', ['BUYER'])).toContain(FORBIDDEN)
+    expect(await render('/seller/inventory', ['BUYER'])).toContain(FORBIDDEN)
+
+    const catHtml = await render('/admin/categories', ['ADMINISTRATOR'])
+    expect(catHtml).toContain('Quản lý cây danh mục 2 cấp')
+    expect(catHtml).not.toContain(FORBIDDEN)
+    expect(catHtml).not.toContain('T3-07')
+
+    const modHtml = await render('/admin/moderation/products', ['ADMINISTRATOR'])
+    expect(modHtml).toContain('Kiểm duyệt sản phẩm')
+    expect(modHtml).not.toContain(FORBIDDEN)
+    expect(modHtml).not.toContain('T3-07')
+
+    expect(await render('/admin/categories', ['CS'])).toContain(FORBIDDEN)
+    expect(await render('/admin/moderation/products', ['CS'])).toContain(FORBIDDEN)
+  })
+
   it('login page explains a forced logout because the account was locked', async () => {
     lockoutAuthSession('Tài khoản của bạn đã bị khóa bởi quản trị viên.')
     expect(await render('/login')).toContain('Tài khoản của bạn đã bị khóa bởi quản trị viên')

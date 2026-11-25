@@ -39,6 +39,7 @@ export const STATUS_TONES = {
   PARTIAL: 'warning',
   // Success / Completed
   ACTIVE: 'success',
+  VISIBLE: 'success',
   APPROVED: 'success',
   PAID: 'success',
   DELIVERED: 'success',

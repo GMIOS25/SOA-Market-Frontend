@@ -25,7 +25,13 @@ import {
   SellerComplaintsPage,
 } from '@/features/complaints'
 import { CheckoutResultPage } from '@/features/payment-shipping/CheckoutResultPage'
-import { AdminSellerApplicationsPage, SellerOnboardingPage } from '@/features/seller-shop'
+import {
+  AdminSellerApplicationsPage,
+  AdminShopsPage,
+  PublicShopPage,
+  SellerOnboardingPage,
+  SellerShopPage,
+} from '@/features/seller-shop'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
@@ -60,7 +66,7 @@ function routesFromNav(base: string, groups: NavGroup[], pages: Partial<Record<N
 
 const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   sellerDashboard: soon('items.sellerDashboard', 'T1-11'),
-  sellerShop: soon('items.sellerShop', 'T2-07'),
+  sellerShop: <SellerShopPage />,
   sellerProducts: soon('items.sellerProducts', 'T3-07'),
   sellerInventory: soon('items.sellerInventory', 'T3-07'),
   sellerOrders: <SellerOrdersPage />,
@@ -76,7 +82,7 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminExceptions: soon('items.adminExceptions', 'T5-09'),
   adminCategories: soon('items.adminCategories', 'T3-07'),
   adminUsers: <AdminUsersPage />,
-  adminShops: soon('items.adminShops', 'T2-07'),
+  adminShops: <AdminShopsPage />,
   adminModerationProducts: soon('items.adminModerationProducts', 'T3-07'),
   adminModerationReviews: soon('items.adminModerationReviews', 'T2-11'),
   adminComplaintsQueue: soon('items.adminComplaintsQueue', 'T4-12'),
@@ -100,7 +106,7 @@ export const routes: RouteObject[] = [
           { index: true, element: soon('pages.home', 'T3-06') },
           { path: 'products', element: soon('pages.products', 'T3-06') },
           { path: 'products/:id', element: soon('pages.productDetail', 'T3-06') },
-          { path: 'shops/:id', element: soon('pages.shop', 'T2-07') },
+          { path: 'shops/:id', element: <PublicShopPage /> },
 
           // Cụm xác thực (T1-06) — LoginPage tự điều hướng sau khi đăng nhập nên không bọc guard "chỉ cho khách".
           { path: 'login', element: <LoginPage /> },

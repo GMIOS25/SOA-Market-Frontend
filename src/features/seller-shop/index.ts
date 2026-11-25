@@ -1,2 +1,5 @@
 export { SellerOnboardingPage } from './pages/SellerOnboardingPage'
 export { AdminSellerApplicationsPage } from './pages/AdminSellerApplicationsPage'
+export { SellerShopPage } from './pages/SellerShopPage'
+export { AdminShopsPage } from './pages/AdminShopsPage'
+export { PublicShopPage } from './pages/PublicShopPage'

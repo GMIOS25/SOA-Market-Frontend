@@ -100,5 +100,155 @@
       "simulateDeliveryFailed": "Buộc giao thất bại",
       "outOfOrderWebhook": "Webhook đến sai thứ tự"
     }
+  },
+  "exceptions": {
+    "title": "Quản trị ngoại lệ, Hoàn tiền thủ công & Khoản phải trả",
+    "subtitle": "Theo dõi 4 nhóm ngoại lệ thanh toán – vận chuyển, xác nhận hoàn tiền thủ công kèm đối soát ngân hàng và kiểm tra công nợ nhà bán.",
+    "csNotice": "Vai trò CSKH chỉ xem danh sách ngoại lệ. Thao tác xác nhận hoàn tiền thủ công, thử lại vận đơn và xem khoản phải trả yêu cầu quyền Quản trị viên.",
+    "tabs": {
+      "exceptions": "Danh sách ngoại lệ",
+      "payables": "Khoản phải trả nhà bán"
+    },
+    "groups": {
+      "refunds": "Hoàn tiền thất bại / đối soát",
+      "shipments": "Tạo vận đơn lỗi",
+      "lateOrMismatch": "Thanh toán muộn / lệch tiền",
+      "stuckOrReconcile": "Đơn kẹt & đối soát sàn"
+    },
+    "sources": {
+      "CANCELLATION": "Hủy đơn hàng",
+      "DELIVERY_FAILED": "Giao thất bại",
+      "LATE_PAYMENT": "Thanh toán muộn",
+      "COMPLAINT": "Khiếu nại"
+    },
+    "refundStatuses": {
+      "REQUESTED": "Chờ xử lý",
+      "PROCESSING": "Đang xử lý",
+      "SUCCEEDED": "Đã hoàn",
+      "FAILED": "Hoàn thất bại"
+    },
+    "refundPresets": {
+      "FAILED": "Hoàn thất bại",
+      "NEEDS_RECONCILIATION": "Cần đối soát",
+      "EXHAUSTED": "Hết lượt retry",
+      "SUCCEEDED": "Đã hoàn tiền",
+      "ALL": "Tất cả"
+    },
+    "filters": {
+      "allSources": "Tất cả nguồn hoàn tiền",
+      "lookupPlaceholder": "Nhập UUID đơn hàng, gói hàng hoặc thanh toán...",
+      "lookupTypeOrder": "Mã Order",
+      "lookupTypeSellerOrder": "Mã SellerOrder",
+      "lookupTypePayment": "Mã Payment",
+      "apply": "Lọc",
+      "clear": "Xóa lọc",
+      "refresh": "Làm mới"
+    },
+    "refunds": {
+      "emptyTitle": "Không có giao dịch hoàn tiền nào thuộc nhóm này",
+      "emptyHint": "Hệ thống sẽ tự động liệt kê các yêu cầu hoàn tiền thất bại hoặc bị gián đoạn cần quản trị viên can thiệp.",
+      "loadError": "Không thể tải danh sách hoàn tiền từ SVC-PAY.",
+      "refundId": "Mã hoàn tiền",
+      "orderId": "Mã đơn hàng",
+      "sellerOrderId": "Mã gói hàng",
+      "amount": "Số tiền hoàn",
+      "source": "Nguồn hoàn tiền",
+      "attempts": "Lần thử",
+      "exhausted": "Hết lượt thử",
+      "nextRetry": "Thử lại lúc {{time}}",
+      "needsReconcileBadge": "Cần đối soát cổng",
+      "errorDetail": "Nguyên nhân gần nhất",
+      "manualRef": "Mã NH thủ công: {{ref}}",
+      "updatedAt": "Cập nhật",
+      "markManualBtn": "Xác nhận hoàn tiền thủ công",
+      "workerInProgress": "Worker đang xử lý",
+      "adminOnlyHint": "Chỉ ADMINISTRATOR mới được xác nhận thủ công",
+      "successTitle": "Đã xác nhận hoàn tiền thủ công thành công",
+      "successDesc": "Giao dịch hoàn {{refundId}} đã chuyển sang trạng thái Đã hoàn với mã ngân hàng {{bankRef}}."
+    },
+    "shipments": {
+      "heading": "Vận đơn tạo lỗi từ ĐVVC (CREATE_FAILED)",
+      "empty": "Không có vận đơn CREATE_FAILED nào đang chờ xử lý.",
+      "loadError": "Không thể tải danh sách vận đơn lỗi từ SVC-SHP.",
+      "shipmentId": "Mã vận đơn nội bộ",
+      "sellerOrderId": "Mã gói hàng",
+      "shopId": "Mã gian hàng",
+      "carrier": "Đơn vị vận chuyển",
+      "attempts": "Số lần thử",
+      "reason": "Lý do lỗi",
+      "retryBtn": "Thử tạo lại vận đơn",
+      "retrying": "Đang tạo lại...",
+      "retrySuccess": "Đã gửi yêu cầu tạo lại vận đơn cho gói {{sellerOrderId}}.",
+      "retryError": "Không thể tạo lại vận đơn: {{message}}"
+    },
+    "lateOrMismatch": {
+      "manualReviewTitle": "Giao dịch thanh toán cần đối soát / lệch số tiền",
+      "manualReviewEmpty": "Không có giao dịch thanh toán nào bị gắn cờ cần đối soát.",
+      "manualReviewError": "Không thể tải giao dịch cần đối soát từ SVC-PAY.",
+      "manualReviewBadge": "Cần kiểm tra thủ công",
+      "lateRefundsTitle": "Hoàn tiền phát sinh từ thanh toán đến muộn (LATE_PAYMENT)",
+      "lateRefundsEmpty": "Chưa ghi nhận khoản hoàn tiền thanh toán muộn nào.",
+      "lateRefundsError": "Không thể tải danh sách hoàn tiền thanh toán muộn từ SVC-PAY.",
+      "paymentId": "Mã thanh toán",
+      "gateway": "Cổng",
+      "gatewayRef": "Mã tham chiếu cổng"
+    },
+    "stuckOrReconcile": {
+      "heading": "Ngoại lệ đơn kẹt & đối soát liên dịch vụ (SVC-RPT)",
+      "fallback": "Dịch vụ tổng hợp đối soát SVC-RPT chưa khả dụng lúc này; các ngoại lệ hoàn tiền, thanh toán và vận đơn từ SVC-PAY / SVC-SHP vẫn hoạt động bình thường.",
+      "empty": "Không ghi nhận đơn kẹt hoặc sai lệch đối soát nào từ SVC-RPT.",
+      "type": "Loại ngoại lệ",
+      "entity": "Đối tượng",
+      "summary": "Mô tả",
+      "createdAt": "Phát hiện lúc"
+    },
+    "manualModal": {
+      "title": "Xác nhận đã hoàn tiền thủ công",
+      "description": "Cập nhật giao dịch hoàn {{refundId}} ({{amount}}) sang Đã hoàn và đồng bộ sổ cái nhà bán.",
+      "bankRefLabel": "Mã tham chiếu giao dịch ngân hàng (bankTransactionRef)",
+      "bankRefPlaceholder": "VD: VCB-20261125-998877",
+      "bankRefHint": "Từ 3 đến 128 ký tự (mã chuyển khoản ngân hàng hoặc mã tra soát VNPay).",
+      "bankRefTooShort": "Mã giao dịch ngân hàng phải có ít nhất 3 ký tự.",
+      "reconcileWarning": "Khoản hoàn tiền này đang có trạng thái chưa xác định kết quả từ cổng thanh toán. Bắt buộc kiểm tra sao kê/cổng thanh toán trước khi xác nhận.",
+      "confirmReconciledLabel": "Tôi đã đối soát trực tiếp với cổng thanh toán / sao kê ngân hàng và xác nhận cần đánh dấu hoàn thành thủ công.",
+      "submit": "Xác nhận hoàn tiền thành công"
+    },
+    "payables": {
+      "loadError": "Không thể tải dữ liệu khoản phải trả nhà bán từ SVC-PAY.",
+      "summary": {
+        "gross": "Tổng tiền gộp",
+        "refunded": "Tổng đã hoàn",
+        "fee": "Phí nền tảng (5%)",
+        "net": "Tổng phải trả ròng",
+        "eligible": "Đủ điều kiện chi trả",
+        "onHold": "Đang tạm giữ (khiếu nại)"
+      },
+      "shopTotalsTitle": "Tổng hợp khoản phải trả theo gian hàng",
+      "shopTotalsEmpty": "Chưa có dữ liệu công nợ theo gian hàng.",
+      "shopId": "Mã gian hàng",
+      "entriesCount": "Số đơn",
+      "filterByShop": "Xem chi tiết sổ cái",
+      "clearShopFilter": "Bỏ lọc gian hàng",
+      "filteredShop": "Đang lọc gian hàng {{shopId}}",
+      "ledgerTitle": "Chi tiết sổ cái từng gói hàng (SellerLedgerEntry)",
+      "allStatuses": "Tất cả trạng thái",
+      "shopIdPlaceholder": "Lọc theo UUID gian hàng...",
+      "invalidShopUuid": "Mã gian hàng phải là UUID hợp lệ.",
+      "ledgerEmpty": "Không có bản ghi công nợ nào phù hợp bộ lọc.",
+      "sellerOrderId": "Mã gói hàng",
+      "itemsAmount": "Tiền hàng",
+      "feeRate": "Phí ({{rate}}%)",
+      "netAmount": "Thực nhận",
+      "condition": "Điều kiện chi trả",
+      "completed": "Đơn đã hoàn tất",
+      "notCompleted": "Chờ đơn hoàn tất",
+      "openComplaints": "{{count}} khiếu nại mở",
+      "eligibleAt": "Mốc đủ điều kiện"
+    },
+    "pagination": {
+      "summary": "Trang {{page}}/{{totalPages}} · Tổng {{total}} mục",
+      "prev": "Trang trước",
+      "next": "Trang sau"
+    }
   }
 }

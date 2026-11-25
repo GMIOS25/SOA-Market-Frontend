@@ -27,6 +27,7 @@ import {
   SellerComplaintDetailPage,
   SellerComplaintsPage,
 } from '@/features/complaints'
+import { AdminExceptionsPage } from '@/features/payment-shipping'
 import { CheckoutResultPage } from '@/features/payment-shipping/CheckoutResultPage'
 import {
   AdminSellerApplicationsPage,
@@ -82,7 +83,7 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminSellerApplications: <AdminSellerApplicationsPage />,
   adminOrders: soon('items.adminOrders', 'T1-11'),
   adminTransactions: soon('items.adminTransactions', 'T1-11'),
-  adminExceptions: soon('items.adminExceptions', 'T5-09'),
+  adminExceptions: <AdminExceptionsPage />,
   adminCategories: soon('items.adminCategories', 'T3-07'),
   adminUsers: <AdminUsersPage />,
   adminShops: <AdminShopsPage />,

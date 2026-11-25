@@ -180,6 +180,21 @@ describe('portal rendering by role', () => {
     expect(await render('/admin/complaints/cpl-1', ['BUYER'])).toContain(FORBIDDEN)
   })
 
+  it('administrator and CS can open exceptions portal (/admin/exceptions — T5-09), while BUYER gets 403', async () => {
+    const adminHtml = await render('/admin/exceptions', ['ADMINISTRATOR'])
+    expect(adminHtml).toContain('Quản trị ngoại lệ')
+    expect(adminHtml).toContain('Khoản phải trả nhà bán')
+    expect(adminHtml).not.toContain('T5-09')
+    expect(adminHtml).not.toContain(FORBIDDEN)
+
+    const csHtml = await render('/admin/exceptions', ['CS'])
+    expect(csHtml).toContain('Quản trị ngoại lệ')
+    expect(csHtml).not.toContain('T5-09')
+    expect(csHtml).not.toContain(FORBIDDEN)
+
+    expect(await render('/admin/exceptions', ['BUYER'])).toContain(FORBIDDEN)
+  })
+
   it('login page explains a forced logout because the account was locked', async () => {
     lockoutAuthSession('Tài khoản của bạn đã bị khóa bởi quản trị viên.')
     expect(await render('/login')).toContain('Tài khoản của bạn đã bị khóa bởi quản trị viên')

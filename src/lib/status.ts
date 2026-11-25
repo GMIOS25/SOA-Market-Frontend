@@ -21,6 +21,7 @@ export const STATUS_TONES = {
   IN_TRANSIT: 'info',
   OUT_FOR_DELIVERY: 'info',
   PROCESSING: 'info',
+  SUBMITTED: 'info',
   UNDER_REVIEW: 'info',
   EXECUTING: 'info',
   // Warning / Action Needed

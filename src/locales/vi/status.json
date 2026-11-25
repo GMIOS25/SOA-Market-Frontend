@@ -14,6 +14,7 @@
   "IN_TRANSIT": "Đang trung chuyển",
   "OUT_FOR_DELIVERY": "Đang giao hàng",
   "PROCESSING": "Đang xử lý",
+  "SUBMITTED": "Đã gửi",
   "UNDER_REVIEW": "Đang xem xét",
   "EXECUTING": "Đang thực thi",
 

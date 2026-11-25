@@ -85,6 +85,30 @@ describe('portal rendering by role', () => {
     expect(html).not.toContain(FORBIDDEN)
   })
 
+  it('buyer can open buyer complaints list and detail routes (T4-11)', async () => {
+    const listHtml = await render('/account/complaints', ['BUYER'])
+    expect(listHtml).toContain('Khiếu nại của tôi')
+    expect(listHtml).not.toContain(FORBIDDEN)
+    expect(listHtml).not.toContain('T4-11')
+
+    const detailHtml = await render('/account/complaints/cpl-1', ['BUYER'])
+    expect(detailHtml).not.toContain(FORBIDDEN)
+    expect(detailHtml).not.toContain('T4-11')
+  })
+
+  it('seller can open seller complaints list and detail routes (T4-11)', async () => {
+    const listHtml = await render('/seller/complaints', ['BUYER', 'SELLER'])
+    expect(listHtml).toContain('Quản lý khiếu nại')
+    expect(listHtml).not.toContain(FORBIDDEN)
+    expect(listHtml).not.toContain('T4-11')
+
+    const detailHtml = await render('/seller/complaints/cpl-1', ['BUYER', 'SELLER'])
+    expect(detailHtml).not.toContain(FORBIDDEN)
+    expect(detailHtml).not.toContain('T4-11')
+
+    expect(await render('/seller/complaints', ['BUYER'])).toContain(FORBIDDEN)
+  })
+
   it('seller can open seller shop management (/seller/shop — T2-07)', async () => {
     const html = await render('/seller/shop', ['BUYER', 'SELLER'])
     expect(html).toContain('Quản lý gian hàng')

@@ -37,7 +37,7 @@ describe('portal rendering by role', () => {
     const html = await render('/')
     expect(html).toContain('Tìm kiếm sản phẩm')
     expect(html).toContain('Đăng nhập')
-    expect(html).toContain('T3-06')
+    expect(html).toContain('Danh mục sản phẩm')
   })
 
   it('guest is not shown protected content', async () => {
@@ -59,6 +59,20 @@ describe('portal rendering by role', () => {
     const html = await render('/checkout', ['BUYER'])
     expect(html).toContain('Xác nhận &amp; Đặt hàng')
     expect(html).not.toContain(FORBIDDEN)
+  })
+
+  it('guest can open the three storefront routes of T3-06 with no placeholder left (T3-06)', async () => {
+    const home = await render('/')
+    expect(home).toContain('Danh mục sản phẩm')
+    expect(home).not.toContain('T3-06')
+
+    const search = await render('/products?q=ao&sort=popular')
+    expect(search).toContain('Kết quả tìm kiếm cho &quot;ao&quot;')
+    expect(search).not.toContain('T3-06')
+
+    const detail = await render('/products/prd-1')
+    expect(detail).not.toContain(FORBIDDEN)
+    expect(detail).not.toContain('T3-06')
   })
 
   it('buyer can open buyer orders list and order detail routes (T4-07)', async () => {

@@ -14,3 +14,12 @@ export function openBlobInNewTab(blob: Blob): void {
   window.open(url, '_blank', 'noopener,noreferrer')
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
+
+/** Chuẩn hóa `imageRef` từ SVC-PRD (`products/<shopId>/<file>` hoặc URL đầy đủ) thành URL tải ảnh từ bucket `public-products`. */
+export function resolveProductImageUrl(ref: string | undefined): string | null {
+  const trimmed = ref?.trim()
+  if (!trimmed) return null
+  if (/^(https?:\/\/|data:|\/)/i.test(trimmed)) return trimmed
+  const base = (import.meta.env.VITE_PUBLIC_ASSET_BASE_URL ?? 'http://localhost:9000').replace(/\/+$/, '')
+  return `${base}/public-products/${trimmed.replace(/^\/+/, '')}`
+}

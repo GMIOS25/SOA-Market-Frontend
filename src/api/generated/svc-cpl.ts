@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/complaints/{id}/confirm-return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Nhà bán xác nhận đã nhận và kiểm tra hàng hoàn để mở khóa lệnh hoàn tiền (OQ-11) */
+        post: operations["confirm-complaint-return-received"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/complaints/{id}/escalate": {
         parameters: {
             query?: never;
@@ -123,6 +140,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cs/complaints/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hàng chờ khiếu nại ESCALATED dành cho CSKH, sắp xếp theo SLA countdown tăng dần */
+        get: operations["list-cs-complaints-queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cs/complaints/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** CSKH nhận xử lý khiếu nại với khóa lạc quan (trả 409 Conflict khi xung đột) */
+        post: operations["claim-cs-complaint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cs/complaints/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** CSKH ra quyết định phân xử kèm lý do bắt buộc và kiểm tra hạn mức hoàn tiền qua SVC-PAY (BR-CPL-06) */
+        post: operations["decide-cs-complaint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -139,6 +207,97 @@ export interface components {
             details?: components["schemas"]["FieldDetail"][] | null;
             message: string;
         };
+        CSDecisionInput: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/CSDecisionInput.json
+             */
+            readonly $schema?: string;
+            outcome: string;
+            reason: string;
+            /** Format: int64 */
+            refundAmount?: number;
+            responsibleParty: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        CSDecisionResult: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/CSDecisionResult.json
+             */
+            readonly $schema?: string;
+            complaint: components["schemas"]["ComplaintSummaryView"];
+            refundDispatched: boolean;
+            resolution: components["schemas"]["ResolutionView"];
+            returnShipmentId?: string;
+            warning?: string;
+        };
+        CSQueueItemView: {
+            assignedCsId?: string;
+            buyerId: string;
+            complaintCode: string;
+            complaintId: string;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            /** Format: date-time */
+            negotiateDueAt?: string;
+            orderId: string;
+            /** Format: int32 */
+            priority: number;
+            rejectionReason?: string;
+            /** Format: int64 */
+            requestedRefundAmount?: number;
+            requestedResolution: string;
+            returnReceivedConfirmed: boolean;
+            returnShipmentId?: string;
+            /** Format: date-time */
+            sellerDueAt?: string;
+            sellerOrderId: string;
+            shopId: string;
+            slaBreached: boolean;
+            /** Format: date-time */
+            slaDueAt?: string;
+            /** Format: int64 */
+            slaRemainingSeconds: number;
+            status: string;
+            type: string;
+            unverifiedFlag: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int32 */
+            version: number;
+        };
+        CSQueueResult: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/CSQueueResult.json
+             */
+            readonly $schema?: string;
+            items: components["schemas"]["CSQueueItemView"][] | null;
+            /** Format: int32 */
+            limit: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int32 */
+            totalPages: number;
+        };
+        ClaimComplaintInput: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/ClaimComplaintInput.json
+             */
+            readonly $schema?: string;
+            /** Format: int32 */
+            version?: number;
+        };
         ComplaintDetailView: {
             /**
              * Format: uri
@@ -148,6 +307,7 @@ export interface components {
             readonly $schema?: string;
             availableActions: string[] | null;
             complaint: components["schemas"]["ComplaintSummaryView"];
+            dossier?: components["schemas"]["CrossServiceDossierView"];
             evidences: components["schemas"]["EvidenceView"][] | null;
             messages: components["schemas"]["ComplaintMessageView"][] | null;
             relatedComplaints: components["schemas"]["RelatedComplaintView"][] | null;
@@ -230,6 +390,16 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        ConfirmReturnBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/ConfirmReturnBody.json
+             */
+            readonly $schema?: string;
+            /** @description Ghi chú kiểm tra hàng hoàn của nhà bán (OQ-11) */
+            note?: string;
+        };
         CreateComplaintsInput: {
             /**
              * Format: uri
@@ -257,6 +427,15 @@ export interface components {
             orderId: string;
             /** Format: int64 */
             splitCount: number;
+        };
+        CrossServiceDossierView: {
+            orderServiceUnavailable: boolean;
+            paymentAllocation?: components["schemas"]["PaymentAllocationInfo"];
+            paymentServiceUnavailable: boolean;
+            sellerOrder?: components["schemas"]["SellerOrderInfo"];
+            shipment?: components["schemas"]["ShipmentInfo"];
+            shippingServiceUnavailable: boolean;
+            unavailableServices: string[] | null;
         };
         EscalateComplaintRequestBody: {
             /**
@@ -293,6 +472,18 @@ export interface components {
         FieldDetail: {
             field: string;
             reason: string;
+        };
+        PaymentAllocationInfo: {
+            allocationId: string;
+            /** Format: int64 */
+            amount: number;
+            paymentId: string;
+            /** Format: int64 */
+            refundedAmount: number;
+            /** Format: int64 */
+            remainingRefundable: number;
+            sellerOrderId: string;
+            status: string;
         };
         ProposalPayload: {
             action: string;
@@ -345,6 +536,61 @@ export interface components {
             readonly $schema?: string;
             complaint: components["schemas"]["ComplaintSummaryView"];
             message: components["schemas"]["ComplaintMessageView"];
+        };
+        SellerOrderInfo: {
+            buyerId: string;
+            carrier?: string;
+            /** Format: date-time */
+            completeDueAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            /** Format: int64 */
+            discountAmount: number;
+            hasOpenComplaint: boolean;
+            items?: components["schemas"]["SellerOrderItemInfo"][] | null;
+            /** Format: int64 */
+            itemsAmount: number;
+            orderCode: string;
+            orderId: string;
+            refundStatus: string;
+            sellerOrderCode: string;
+            sellerOrderId: string;
+            /** Format: int64 */
+            shippingFee: number;
+            shopId: string;
+            status: string;
+            /** Format: int64 */
+            totalAmount: number;
+            trackingCode?: string;
+        };
+        SellerOrderItemInfo: {
+            imageRef?: string;
+            orderItemId: string;
+            productId: string;
+            productName: string;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int64 */
+            unitPrice: number;
+            variantId: string;
+            variantLabel: string;
+            /** Format: int32 */
+            weightGram: number;
+        };
+        ShipmentInfo: {
+            carrier: string;
+            complaintId?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            /** Format: date-time */
+            etaAt?: string;
+            kind: string;
+            sellerOrderId: string;
+            shipmentId: string;
+            status: string;
+            trackingCode: string;
         };
         WithdrawComplaintRequestBody: {
             /**
@@ -472,6 +718,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComplaintDetailView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    "confirm-complaint-return-received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID khiếu nại (complaintId) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConfirmReturnBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintSummaryView"];
                 };
             };
             /** @description Error */
@@ -654,6 +936,120 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComplaintSummaryView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    "list-cs-complaints-queue": {
+        parameters: {
+            query?: {
+                /** @description Lọc theo mức độ ưu tiên (1..4) */
+                priority?: string;
+                /** @description Lọc theo loại vấn đề */
+                type?: string;
+                /** @description Chỉ lấy các khiếu nại có cờ unverified_flag */
+                unverifiedOnly?: boolean;
+                /** @description Chỉ lấy các khiếu nại đã quá hạn SLA */
+                overdue?: boolean;
+                /** @description Số trang (>= 1) */
+                page?: number;
+                /** @description Số bản ghi mỗi trang (1..100) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CSQueueResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    "claim-cs-complaint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID khiếu nại (complaintId) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ClaimComplaintInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintSummaryView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    "decide-cs-complaint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID khiếu nại (complaintId) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CSDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CSDecisionResult"];
                 };
             };
             /** @description Error */

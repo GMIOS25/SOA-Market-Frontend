@@ -10,8 +10,10 @@ RUN npm ci
 COPY . .
 # Empty = same origin: the SPA calls /v1/* on the host that serves it (Nginx behind Traefik).
 ARG VITE_API_BASE_URL=""
+ARG VITE_MEDIA_BASE_URL=""
 ARG VITE_DEMO_MODE="false"
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_MEDIA_BASE_URL=$VITE_MEDIA_BASE_URL \
     VITE_DEMO_MODE=$VITE_DEMO_MODE
 RUN npm run build
 

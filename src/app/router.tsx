@@ -18,6 +18,7 @@ import {
   SellerOrderDetailPage,
   SellerOrdersPage,
 } from '@/features/cart-checkout-order'
+import { HomePage, ProductDetailPage, ProductSearchPage } from '@/features/catalog-inventory'
 import {
   AdminComplaintsQueuePage,
   AdminComplaintWorkspacePage,
@@ -105,9 +106,9 @@ export const routes: RouteObject[] = [
       {
         element: <BuyerLayout />,
         children: [
-          { index: true, element: soon('pages.home', 'T3-06') },
-          { path: 'products', element: soon('pages.products', 'T3-06') },
-          { path: 'products/:id', element: soon('pages.productDetail', 'T3-06') },
+          { index: true, element: <HomePage /> },
+          { path: 'products', element: <ProductSearchPage /> },
+          { path: 'products/:id', element: <ProductDetailPage /> },
           { path: 'shops/:id', element: <PublicShopPage /> },
 
           // Cụm xác thực (T1-06) — LoginPage tự điều hướng sau khi đăng nhập nên không bọc guard "chỉ cho khách".

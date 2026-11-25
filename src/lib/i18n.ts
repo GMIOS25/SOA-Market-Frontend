@@ -1,5 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import catalog from '@/locales/vi/catalog.json'
 import checkout from '@/locales/vi/checkout.json'
 import common from '@/locales/vi/common.json'
 import complaints from '@/locales/vi/complaints.json'
@@ -14,14 +15,14 @@ import status from '@/locales/vi/status.json'
 // Toàn bộ chuỗi giao diện tách vào locales/vi/*.json (NFR-USA-001).
 export const defaultNS = 'common'
 export const resources = {
-  vi: { common, complaints, nav, shared, status, checkout, orders, paymentShipping, sellerOrders, sellerShop },
+  vi: { common, complaints, nav, shared, status, catalog, checkout, orders, paymentShipping, sellerOrders, sellerShop },
 } as const
 
 void i18n.use(initReactI18next).init({
   lng: 'vi',
   fallbackLng: 'vi',
   defaultNS,
-  ns: ['common', 'complaints', 'nav', 'shared', 'status', 'checkout', 'orders', 'paymentShipping', 'sellerOrders', 'sellerShop'],
+  ns: ['common', 'complaints', 'nav', 'shared', 'status', 'catalog', 'checkout', 'orders', 'paymentShipping', 'sellerOrders', 'sellerShop'],
   resources,
   interpolation: { escapeValue: false },
 })

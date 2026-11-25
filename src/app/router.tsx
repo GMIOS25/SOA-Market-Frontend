@@ -18,6 +18,12 @@ import {
   SellerOrderDetailPage,
   SellerOrdersPage,
 } from '@/features/cart-checkout-order'
+import {
+  BuyerComplaintDetailPage,
+  BuyerComplaintsPage,
+  SellerComplaintDetailPage,
+  SellerComplaintsPage,
+} from '@/features/complaints'
 import { CheckoutResultPage } from '@/features/payment-shipping/CheckoutResultPage'
 import { AdminSellerApplicationsPage, SellerOnboardingPage } from '@/features/seller-shop'
 import { AdminLayout } from '@/layouts/AdminLayout'
@@ -59,7 +65,7 @@ const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   sellerInventory: soon('items.sellerInventory', 'T3-07'),
   sellerOrders: <SellerOrdersPage />,
   sellerReviews: soon('items.sellerReviews', 'T2-11'),
-  sellerComplaints: soon('items.sellerComplaints', 'T4-11'),
+  sellerComplaints: <SellerComplaintsPage />,
 }
 
 const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
@@ -122,8 +128,8 @@ export const routes: RouteObject[] = [
               { path: 'account/orders', element: <BuyerOrdersPage /> },
               { path: 'account/orders/:id', element: <BuyerOrderDetailPage /> },
               { path: 'account/reviews', element: soon('pages.reviews', 'T2-11') },
-              { path: 'account/complaints', element: soon('pages.complaints', 'T4-11') },
-              { path: 'account/complaints/:id', element: soon('pages.complaintDetail', 'T4-11') },
+              { path: 'account/complaints', element: <BuyerComplaintsPage /> },
+              { path: 'account/complaints/:id', element: <BuyerComplaintDetailPage /> },
               { path: 'seller-onboarding', element: <SellerOnboardingPage /> },
             ],
           },
@@ -143,7 +149,7 @@ export const routes: RouteObject[] = [
           { path: 'products/new', element: soon('pages.sellerProductNew', 'T3-07') },
           { path: 'products/:id/edit', element: soon('pages.sellerProductEdit', 'T3-07') },
           { path: 'orders/:id', element: <SellerOrderDetailPage /> },
-          { path: 'complaints/:id', element: soon('pages.sellerComplaintDetail', 'T4-11') },
+          { path: 'complaints/:id', element: <SellerComplaintDetailPage /> },
         ],
       },
 

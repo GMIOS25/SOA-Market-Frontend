@@ -100,7 +100,6 @@ export function AdminComplaintWorkspacePage() {
         message: t('workspace.claimedBanner', { code: updated.complaintCode }),
       })
       void queryClient.invalidateQueries({ queryKey: complaintsKeys.all })
-      void detailQuery.refetch()
     },
     onError: (err) => {
       const normalized = err instanceof Error ? err : new Error(t('workspace.loadError'))
@@ -134,7 +133,6 @@ export function AdminComplaintWorkspacePage() {
         warning: result.warning,
       })
       void queryClient.invalidateQueries({ queryKey: complaintsKeys.all })
-      void detailQuery.refetch()
     },
     onError: (err) => {
       const normalized = err instanceof Error ? err : new Error(t('workspace.loadError'))

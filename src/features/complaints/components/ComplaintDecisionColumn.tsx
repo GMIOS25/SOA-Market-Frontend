@@ -190,8 +190,20 @@ export function ComplaintDecisionColumn({
         ? { refundAmount: Number(trimmedAmount) }
         : {}),
     }
-    await onDecide(payload)
+    try {
+      await onDecide(payload)
+    } catch {
+      // Lỗi API được lưu vào actionError và hiển thị trong cột quyết định.
+    }
   })
+
+  async function handleClaimClick() {
+    try {
+      await onClaim()
+    } catch {
+      // Lỗi API (VD: 409 Conflict) được lưu vào actionError và hiển thị trong cột quyết định.
+    }
+  }
 
   const isFinalized =
     Boolean(resolution) || complaint.status === 'CLOSED' || complaint.status === 'EXECUTING'
@@ -343,7 +355,7 @@ export function ComplaintDecisionColumn({
           <p className="text-sm leading-relaxed text-muted-foreground">
             {t('decision.claimCard.description')}
           </p>
-          <Button type="button" disabled={isClaiming} onClick={() => void onClaim()}>
+          <Button type="button" disabled={isClaiming} onClick={() => void handleClaimClick()}>
             {isClaiming && <Loader2 aria-hidden="true" className="animate-spin" />}
             {isClaiming ? t('decision.claimCard.claiming') : t('decision.claimCard.button')}
           </Button>

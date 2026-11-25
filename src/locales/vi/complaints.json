@@ -1,0 +1,267 @@
+{
+  "common": {
+    "types": {
+      "NOT_RECEIVED": "Chưa nhận được hàng",
+      "WRONG_ITEM": "Giao sai sản phẩm",
+      "DAMAGED": "Hàng hư hỏng / bể vỡ",
+      "NOT_AS_DESCRIBED": "Không đúng mô tả",
+      "OTHER": "Lý do khác"
+    },
+    "resolutions": {
+      "FULL_REFUND": "Hoàn tiền toàn bộ",
+      "PARTIAL_REFUND": "Hoàn tiền một phần",
+      "RETURN_REFUND": "Trả hàng & hoàn tiền",
+      "EXCHANGE": "Đổi hàng",
+      "REJECTED": "Từ chối khiếu nại",
+      "AGREED": "Hai bên đã thỏa thuận"
+    },
+    "parties": {
+      "SELLER": "Nhà bán",
+      "CARRIER": "Đơn vị vận chuyển",
+      "PLATFORM": "Sàn thương mại",
+      "NONE": "Không có (Miễn trừ)"
+    },
+    "priorities": {
+      "1": "P1 · Khẩn cấp",
+      "2": "P2 · Cao",
+      "3": "P3 · Trung bình",
+      "4": "P4 · Thấp"
+    },
+    "roles": {
+      "BUYER": "Người mua",
+      "SELLER": "Nhà bán",
+      "CS": "CSKH",
+      "SYSTEM": "Hệ thống"
+    },
+    "unverifiedBadge": "Chưa xác minh tự động",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới...",
+    "reload": "Tải lại dữ liệu",
+    "dismiss": "Đóng thông báo",
+    "correlationId": "Mã tra cứu",
+    "backToQueue": "Quay lại hàng chờ khiếu nại",
+    "complaintCodeLabel": "mã khiếu nại",
+    "orderIdLabel": "mã đơn hàng tổng",
+    "sellerOrderIdLabel": "mã gói đơn hàng",
+    "buyerIdLabel": "mã người mua",
+    "shopIdLabel": "mã gian hàng",
+    "csIdLabel": "mã CSKH phụ trách"
+  },
+  "queue": {
+    "title": "Hàng chờ phân xử khiếu nại",
+    "subtitle": "Các khiếu nại chuyển cấp được sắp xếp ưu tiên theo thời hạn SLA còn lại.",
+    "totalCount": "{{count}} khiếu nại",
+    "tabs": {
+      "label": "Chế độ xem hàng chờ",
+      "slaQueue": "Hàng chờ SLA (ESCALATED)",
+      "allComplaints": "Tất cả khiếu nại"
+    },
+    "filters": {
+      "label": "Bộ lọc hàng chờ khiếu nại",
+      "priorityLabel": "Mức độ ưu tiên",
+      "allPriorities": "Tất cả mức ưu tiên",
+      "statusLabel": "Trạng thái",
+      "allStatuses": "Tất cả trạng thái",
+      "typeLabel": "Loại vấn đề",
+      "allTypes": "Tất cả loại vấn đề",
+      "overdue": "Chỉ quá hạn SLA",
+      "unverifiedOnly": "Chỉ chưa xác minh tự động",
+      "clearFilters": "Xóa bộ lọc"
+    },
+    "columns": {
+      "complaint": "Khiếu nại",
+      "typeAndRequest": "Loại & Yêu cầu",
+      "priority": "Ưu tiên",
+      "sla": "Thời hạn SLA",
+      "status": "Trạng thái",
+      "actions": "Thao tác"
+    },
+    "requestedRefundCaption": "Đề nghị hoàn: {{amount}}",
+    "slaNotSet": "Chưa có mốc SLA",
+    "slaLabel": "SLA",
+    "claimButton": "Claim",
+    "claimingButton": "Đang tiếp nhận...",
+    "viewButton": "Xem hồ sơ",
+    "adminReadOnlyNotice": "Bạn đang đăng nhập bằng vai trò Quản trị viên (chỉ xem). Chỉ nhân viên CSKH mới có quyền tiếp nhận (Claim) và ra quyết định phân xử.",
+    "claimSuccess": "Đã tiếp nhận xử lý khiếu nại {{code}}.",
+    "claimConflict": "Khiếu nại này đã được nhân viên CSKH khác tiếp nhận hoặc phiên bản dữ liệu đã thay đổi.",
+    "reloadQueue": "Tải lại hàng chờ",
+    "loadError": "Tạm thời chưa tải được hàng chờ khiếu nại từ dịch vụ SVC-CPL.",
+    "emptyTitle": "Chưa có khiếu nại nào",
+    "emptyFiltered": "Không tìm thấy khiếu nại khớp với bộ lọc hiện tại.",
+    "emptyDefault": "Hàng chờ SLA hiện đang trống. Mọi khiếu nại chuyển cấp sẽ hiển thị tại đây.",
+    "pagination": {
+      "summary": "Trang {{page}} / {{totalPages}} · {{total}} khiếu nại",
+      "prev": "Trước",
+      "next": "Sau"
+    }
+  },
+  "workspace": {
+    "title": "Workspace phân xử {{code}}",
+    "loadingTitle": "Đang tải hồ sơ phân xử...",
+    "notFoundTitle": "Không tìm thấy khiếu nại",
+    "notFoundDescription": "Khiếu nại bạn yêu cầu không tồn tại hoặc đã bị xóa.",
+    "forbiddenTitle": "Không có quyền truy cập hồ sơ",
+    "forbiddenDescription": "Tài khoản của bạn không có quyền xem hoặc phân xử khiếu nại này.",
+    "loadError": "Tạm thời chưa tải được chi tiết khiếu nại.",
+    "claimedBanner": "Bạn đã tiếp nhận xử lý khiếu nại {{code}}. Hãy rà soát hồ sơ và nhập quyết định phân xử.",
+    "decidedBanner": "Đã ghi nhận quyết định phân xử cho khiếu nại {{code}}.",
+    "decisionWarning": "Lưu ý điều phối: {{warning}}",
+    "conflictReload": "Tải lại hồ sơ mới nhất",
+    "slaLabel": "SLA phân xử",
+    "columns": {
+      "dossier": "Hồ sơ tổng hợp đa dịch vụ",
+      "timelineEvidence": "Dòng thời gian & Bằng chứng",
+      "decision": "Ra quyết định phân xử"
+    }
+  },
+  "dossier": {
+    "siblingTabs": {
+      "title": "Các khiếu nại cùng Order",
+      "orderLabel": "Đơn hàng tổng",
+      "count": "{{count}} khiếu nại",
+      "currentTag": "Đang xem",
+      "noSiblings": "Đơn hàng tổng này hiện chỉ có 1 khiếu nại."
+    },
+    "summary": {
+      "title": "Thông tin khiếu nại",
+      "type": "Loại vấn đề",
+      "requestedResolution": "Yêu cầu từ người mua",
+      "requestedRefund": "Số tiền đề nghị hoàn",
+      "description": "Mô tả chi tiết",
+      "buyerId": "Người mua",
+      "shopId": "Gian hàng",
+      "assignedCsId": "CSKH phụ trách",
+      "unassigned": "Chưa phân công",
+      "createdAt": "Mở khiếu nại lúc",
+      "rejectionReason": "Lý do từ chối tự động",
+      "unverifiedWarning": "Cờ chưa xác minh tự động (unverifiedFlag): một dịch vụ phụ gặp gián đoạn lúc mở khiếu nại, CSKH cần kiểm tra kỹ hồ sơ trước khi kết luận."
+    },
+    "order": {
+      "title": "Hồ sơ đơn hàng (SVC-ORD)",
+      "unavailable": "Dịch vụ đơn hàng (SVC-ORD) tạm thời gián đoạn. Thông tin chi tiết gói đơn hàng chưa thể tải lúc này.",
+      "sellerOrderCode": "Mã gói đơn hàng",
+      "orderCode": "Mã đơn tổng",
+      "status": "Trạng thái đơn",
+      "refundStatus": "Trạng thái hoàn tiền",
+      "itemsAmount": "Tiền hàng",
+      "shippingFee": "Phí vận chuyển",
+      "discountAmount": "Giảm giá",
+      "totalAmount": "Tổng giá trị gói",
+      "deliveredAt": "Giao hàng lúc",
+      "completedAt": "Hoàn tất lúc",
+      "itemsTitle": "Sản phẩm trong gói ({{count}})",
+      "noItems": "Không có danh sách sản phẩm đính kèm.",
+      "itemMeta": "{{variant}} · SL: {{qty}} · Đơn giá: {{price}}"
+    },
+    "payment": {
+      "title": "Thanh toán & Hạn mức hoàn (SVC-PAY)",
+      "unavailable": "Dịch vụ thanh toán (SVC-PAY) tạm thời gián đoạn. Hồ sơ vẫn mở để CSKH tiếp tục rà soát và thử tải lại khối này.",
+      "allocationId": "Mã phân bổ",
+      "paymentId": "Mã giao dịch thanh toán",
+      "status": "Trạng thái thanh toán",
+      "paidAmount": "Đã thanh toán cho gói",
+      "refundedAmount": "Đã hoàn trước đó",
+      "remainingRefundable": "Hạn mức khả hoàn còn lại",
+      "refundLimitHint": "Theo BR-CPL-06, số tiền hoàn không được vượt quá hạn mức khả hoàn còn lại của gói đơn hàng."
+    },
+    "shipping": {
+      "title": "Vận chuyển & Hoàn hàng (SVC-SHP)",
+      "unavailable": "Dịch vụ vận chuyển (SVC-SHP) tạm thời gián đoạn. Thông tin vận đơn chưa thể tải lúc này.",
+      "carrier": "Đơn vị vận chuyển",
+      "trackingCode": "Mã vận đơn",
+      "kind": "Loại vận đơn",
+      "status": "Trạng thái vận đơn",
+      "deliveredAt": "Giao thành công lúc",
+      "etaAt": "Dự kiến giao",
+      "returnShipmentId": "Vận đơn hoàn hàng",
+      "returnConfirmed": "Nhà bán đã xác nhận nhận hàng hoàn",
+      "returnPending": "Chờ nhà bán / ĐVVC xác nhận đã nhận hàng hoàn"
+    }
+  },
+  "timeline": {
+    "title": "Dòng thời gian xử lý bất biến",
+    "empty": "Chưa có sự kiện trạng thái hoặc trao đổi nào.",
+    "statusChange": {
+      "fromTo": "Chuyển trạng thái",
+      "initial": "Khởi tạo trạng thái",
+      "actor": "Tác nhân: {{actor}}",
+      "reason": "Lý do: {{reason}}"
+    },
+    "message": {
+      "proposalLabel": "Đề xuất: {{action}}",
+      "proposalResolution": "Phương án: {{resolution}}",
+      "proposalRefund": "Mức hoàn đề xuất: {{amount}}"
+    },
+    "evidence": {
+      "title": "Bằng chứng & Mã SHA-256",
+      "count": "{{count}} tệp",
+      "empty": "Chưa có tệp bằng chứng nào được tải lên.",
+      "sha256Label": "mã băm SHA-256",
+      "fileSize": "Dung lượng",
+      "uploadedBy": "Người tải lên",
+      "uploadedAt": "Tải lên lúc",
+      "removedTag": "Đã gỡ bởi CSKH",
+      "removedReason": "Lý do gỡ: {{reason}}",
+      "preview": "Xem",
+      "download": "Tải xuống",
+      "loadingPreview": "Đang tải tệp...",
+      "previewError": "Không thể tải tệp bằng chứng lúc này.",
+      "closePreview": "Đóng xem trước",
+      "openNewTab": "Mở ở tab mới"
+    }
+  },
+  "decision": {
+    "claimCard": {
+      "title": "Tiếp nhận phân xử khiếu nại",
+      "description": "Khiếu nại đang ở hàng chờ ESCALATED. Bạn cần bấm Claim để tiếp nhận trước khi đưa ra quyết định phân xử.",
+      "button": "Claim · Tiếp nhận phân xử",
+      "claiming": "Đang tiếp nhận..."
+    },
+    "form": {
+      "title": "Quyết định phân xử CSKH",
+      "outcomeLabel": "Kết quả phân xử",
+      "outcomePlaceholder": "Chọn kết quả phân xử",
+      "refundAmountLabel": "Số tiền hoàn (VND)",
+      "refundAmountPlaceholder": "Nhập số tiền hoàn (VND)...",
+      "refundAmountMaxHint": "Tối đa có thể hoàn: {{max}} (BR-CPL-06). Để trống với Hoàn toàn bộ / Trả hàng hoàn tiền để hệ thống tự áp dụng toàn bộ số dư khả hoàn.",
+      "refundAmountZeroWarning": "Số dư khả hoàn còn lại đang là 0 ₫. Không thể ra quyết định hoàn tiền.",
+      "payUnavailableWarning": "Không lấy được hạn mức từ SVC-PAY; hệ thống sẽ kiểm tra lại trần hoàn tiền tại máy chủ khi gửi quyết định.",
+      "responsiblePartyLabel": "Bên chịu trách nhiệm",
+      "reasonLabel": "Lý do quyết định",
+      "reasonPlaceholder": "Nhập lập luận phân xử, căn cứ bằng chứng SHA-256 và quy định áp dụng...",
+      "reasonRequiredError": "Bắt buộc nhập lý do quyết định phân xử.",
+      "reasonMaxError": "Lý do tối đa {{max}} ký tự.",
+      "reasonCounter": "{{count}}/{{max}} ký tự",
+      "auditFinalNotice": "Quyết định của CSKH là chung thẩm (OQ-06, BR-CPL-09) và được ghi nhận vào Nhật ký kiểm toán bất biến.",
+      "submit": "Xác nhận quyết định",
+      "submitting": "Đang gửi quyết định...",
+      "validation": {
+        "positiveInt": "Số tiền hoàn phải là số nguyên dương lớn hơn 0.",
+        "exceedsRemaining": "Số tiền hoàn vượt quá hạn mức khả hoàn còn lại ({{max}}).",
+        "requiredForPartial": "Hoàn tiền một phần bắt buộc nhập số tiền hoàn lớn hơn 0."
+      }
+    },
+    "finalized": {
+      "title": "Quyết định phân xử chung thẩm",
+      "outcome": "Kết quả",
+      "refundAmount": "Số tiền hoàn",
+      "responsibleParty": "Bên chịu trách nhiệm",
+      "reason": "Lý do phân xử",
+      "decidedBy": "CSKH quyết định",
+      "decidedAt": "Thời điểm quyết định",
+      "finalNotice": "Quyết định đã được khóa chung thẩm theo quy định BR-CPL-09.",
+      "returnExecutionTitle": "Theo dõi thực thi hoàn hàng & hoàn tiền",
+      "returnWaiting": "Đang chờ đơn vị vận chuyển báo shipment.returned hoặc nhà bán xác nhận đã nhận hàng hoàn trước khi giải ngân hoàn tiền.",
+      "returnConfirmed": "Đã xác nhận nhận hàng hoàn; lệnh hoàn tiền đang được xử lý."
+    },
+    "readonly": {
+      "assignedOtherTitle": "Hồ sơ đang được CSKH khác xử lý",
+      "assignedOtherDescription": "Khiếu nại này đã được phân công cho nhân viên CSKH khác nên bạn chỉ có thể xem ở chế độ chỉ đọc.",
+      "adminOnlyTitle": "Chế độ chỉ đọc (Quản trị viên)",
+      "adminOnlyDescription": "Chỉ tài khoản có vai trò CSKH (CS) mới được quyền Claim hoặc ra quyết định phân xử khiếu nại.",
+      "notEligibleTitle": "Chưa ở trạng thái phân xử CSKH",
+      "notEligibleDescription": "Khiếu nại hiện đang ở trạng thái {{status}} nên chưa thể thực hiện tiếp nhận hoặc ra quyết định CSKH."
+    }
+  }
+}

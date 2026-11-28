@@ -1,4 +1,4 @@
-import { ClipboardList, LogOut, MapPin, MessageSquareWarning, Store, User, UserRound } from 'lucide-react'
+import { ClipboardList, LogOut, MapPin, MessageSquareWarning, Star, Store, User, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { logout } from '@/api/auth-fetch'
@@ -64,6 +64,12 @@ export function UserMenu({ user, variant }: UserMenuProps) {
               <Link to="/account/orders">
                 <ClipboardList aria-hidden="true" />
                 {t('account.orders')}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/account/reviews">
+                <Star aria-hidden="true" />
+                {t('account.reviews')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

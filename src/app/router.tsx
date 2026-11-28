@@ -54,6 +54,7 @@ import {
   SellerOnboardingPage,
   SellerShopPage,
 } from '@/features/seller-shop'
+import { AdminReviewModerationPage, MyReviewsPage, SellerReviewsPage } from '@/features/reviews'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { BuyerLayout } from '@/layouts/BuyerLayout'
 import { RootLayout } from '@/layouts/RootLayout'
@@ -92,7 +93,7 @@ const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   sellerProducts: <SellerProductsPage />,
   sellerInventory: <SellerInventoryPage />,
   sellerOrders: <SellerOrdersPage />,
-  sellerReviews: soon('items.sellerReviews', 'T2-11'),
+  sellerReviews: <SellerReviewsPage />,
   sellerComplaints: <SellerComplaintsPage />,
 }
 
@@ -106,7 +107,7 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminUsers: <AdminUsersPage />,
   adminShops: <AdminShopsPage />,
   adminModerationProducts: <AdminProductModerationPage />,
-  adminModerationReviews: soon('items.adminModerationReviews', 'T2-11'),
+  adminModerationReviews: <AdminReviewModerationPage />,
   adminComplaintsQueue: <AdminComplaintsQueuePage />,
   adminParams: <AdminParamsPage />,
   adminAuditLogs: <AdminAuditLogsPage />,
@@ -155,7 +156,7 @@ export const routes: RouteObject[] = [
               { path: 'checkout/result', element: <CheckoutResultPage /> },
               { path: 'account/orders', element: <BuyerOrdersPage /> },
               { path: 'account/orders/:id', element: <BuyerOrderDetailPage /> },
-              { path: 'account/reviews', element: soon('pages.reviews', 'T2-11') },
+              { path: 'account/reviews', element: <MyReviewsPage /> },
               { path: 'account/complaints', element: <BuyerComplaintsPage /> },
               { path: 'account/complaints/:id', element: <BuyerComplaintDetailPage /> },
               { path: 'seller-onboarding', element: <SellerOnboardingPage /> },

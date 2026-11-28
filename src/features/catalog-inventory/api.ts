@@ -34,7 +34,6 @@ export const catalogKeys = {
   categories: ['catalog', 'categories'] as const,
   search: (params: SearchProductsParams | null) => ['catalog', 'search', params] as const,
   product: (productId: string) => ['catalog', 'product', productId] as const,
-  reviews: (productId: string) => ['reviews', 'product', productId] as const,
   sellerProductsList: ['catalog', 'seller-products'] as const,
   sellerInventoryRoot: ['catalog', 'seller-inventory'] as const,
   sellerInventory: (params: { page?: number; pageSize?: number; productId?: string }) =>
@@ -63,24 +62,6 @@ export async function apiListPublicCategories(): Promise<Category[]> {
 /** `POST /v1/cart/items` — thêm biến thể vào giỏ, trả về giỏ hiện tại (FR-CRT-001). */
 export function apiAddCartItem(body: AddCartItemRequestBody): Promise<CartView> {
   return unwrap(ordClient.POST('/v1/cart/items', { body }))
-}
-
-/**
- * `GET /v1/products/{id}/reviews` (FR-REV-002). SVC-REV chưa có hợp đồng trong `src/api/generated`
- * nên hàm này chỉ trả payload thô: T3-06 dùng để biết dịch vụ trả lời được hay không và giảm cấp đúng khối
- * (NFR-REL-005); hiển thị danh sách đánh giá thuộc T2-11.
- */
-export async function apiGetProductReviews(productId: string): Promise<unknown> {
-  let response: Response
-  try {
-    response = await authFetch(
-      new Request(`${env.apiBaseUrl}/v1/products/${encodeURIComponent(productId)}/reviews`),
-    )
-  } catch {
-    throw networkError()
-  }
-  if (!response.ok) throw toApiError(await response.json().catch(() => null), response)
-  return response.json()
 }
 
 /** `GET /v1/seller/inventory` — danh sách tồn kho theo SKU của gian hàng (FR-PRD-007). */

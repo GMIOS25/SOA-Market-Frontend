@@ -28,19 +28,6 @@ export type ProductSearchPage = SvcPrd.components['schemas']['ProductSearchPage'
 export type ListShopProductsParams = NonNullable<SvcPrd.operations['search-products']['parameters']['query']>
 export type ShopProductSort = NonNullable<ListShopProductsParams['sort']>
 
-/**
- * Hợp đồng xem trước cho `GET /v1/shops/{id}/reviews/summary` của SVC-REV (Phase 5, 02-TRD §5.2 B.7).
- * Sẽ chuyển sang type sinh từ `svc-rev.yaml` trong task T2-09.
- */
-export type ShopReviewsSummaryDTO = {
-  shopId?: string
-  avgStars?: number
-  ratingAvg?: number
-  totalCount?: number
-  ratingCount?: number
-  starCounts?: Record<string, number>
-}
-
 export const selClient = createApiClient<SvcSel.paths>()
 export const prdClient = createApiClient<SvcPrd.paths>()
 
@@ -72,7 +59,6 @@ export const sellerShopKeys = {
   publicShop: (id: string) => ['shops', id] as const,
   publicShopProducts: (id: string, params: Omit<ListShopProductsParams, 'shopId'>) =>
     ['shops', id, 'products', params] as const,
-  publicShopReviewsSummary: (id: string) => ['shops', id, 'reviews-summary'] as const,
 }
 
 /** Hồ sơ mới nhất của tôi; `null` khi chưa từng nộp (404 `APPLICATION_NOT_FOUND`). */
@@ -251,16 +237,3 @@ export function apiListShopProducts(params: ListShopProductsParams): Promise<Pro
   return unwrap(prdClient.GET('/v1/products', { params: { query: params } }))
 }
 
-/** Gọi độc lập tới SVC-REV để khối đánh giá tự giảm cấp bằng `<ServiceFallbackBanner />` khi dịch vụ chưa sẵn sàng/lỗi (NFR-REL-005). */
-export async function apiGetPublicShopReviewsSummary(shopId: string): Promise<ShopReviewsSummaryDTO> {
-  const url = `${env.apiBaseUrl}/v1/shops/${encodeURIComponent(shopId)}/reviews/summary`
-  let response: Response
-  try {
-    response = await authFetch(new Request(url, { method: 'GET' }))
-  } catch {
-    throw networkError()
-  }
-  const body: unknown = await response.json().catch(() => null)
-  if (!response.ok) throw toApiError(body, response)
-  return (body ?? {}) as ShopReviewsSummaryDTO
-}

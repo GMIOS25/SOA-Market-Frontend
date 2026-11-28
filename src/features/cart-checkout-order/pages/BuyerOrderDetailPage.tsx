@@ -359,8 +359,8 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
               Boolean(cancelCauseText || so.cancelReason)
             const reviewItem = items.length === 1 ? items[0] : undefined
             const reviewUrl = reviewItem
-              ? `/account/reviews?orderItemId=${encodeURIComponent(reviewItem.orderItemId)}&productId=${encodeURIComponent(reviewItem.productId)}`
-              : `/account/reviews?sellerOrderId=${encodeURIComponent(so.sellerOrderId)}`
+              ? `/account/reviews?orderId=${encodeURIComponent(order.orderId)}&orderItemId=${encodeURIComponent(reviewItem.orderItemId)}`
+              : `/account/reviews?orderId=${encodeURIComponent(order.orderId)}&sellerOrderId=${encodeURIComponent(so.sellerOrderId)}`
             const hasActions = canCancel || isShippingLocked || so.status === 'DELIVERED' || so.status === 'COMPLETED'
 
             const slaNode =
@@ -526,7 +526,7 @@ export function BuyerOrderDetailPage({ renderExternalTimeline }: BuyerOrderDetai
                         {so.status === 'DELIVERED' && (
                           <Button asChild variant="ghost" size="xs">
                             <Link
-                              to={`/account/reviews?orderItemId=${encodeURIComponent(item.orderItemId)}&productId=${encodeURIComponent(item.productId)}`}
+                              to={`/account/reviews?orderId=${encodeURIComponent(order.orderId)}&orderItemId=${encodeURIComponent(item.orderItemId)}`}
                             >
                               <Star aria-hidden="true" />
                               {t('detail.actions.reviewItem')}

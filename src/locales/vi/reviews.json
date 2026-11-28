@@ -1,0 +1,146 @@
+{
+  "stars": {
+    "aria": "{{count}} trên 5 sao",
+    "label": "{{count}} sao",
+    "inputLegend": "Chấm điểm sản phẩm",
+    "inputOption": "{{count}} sao",
+    "hint": {
+      "1": "Rất tệ",
+      "2": "Không hài lòng",
+      "3": "Bình thường",
+      "4": "Hài lòng",
+      "5": "Tuyệt vời"
+    }
+  },
+  "summary": {
+    "average": "Điểm trung bình",
+    "totalCount": "{{formatted}} lượt đánh giá",
+    "starLabel": "{{star}} sao"
+  },
+  "list": {
+    "loadError": "Tạm thời không thể tải danh sách đánh giá.",
+    "empty": "Chưa có đánh giá nào cho sản phẩm này.",
+    "emptyFiltered": "Không có đánh giá nào phù hợp bộ lọc.",
+    "filterLabel": "Lọc đánh giá",
+    "filterAll": "Tất cả",
+    "filterStars": "{{count}} sao",
+    "filterWithImages": "Có ảnh",
+    "sellerReply": "Phản hồi của nhà bán",
+    "imageAlt": "Ảnh {{index}} của đánh giá",
+    "openImage": "Mở ảnh {{index}} trong tab mới",
+    "prev": "Trang trước",
+    "next": "Trang sau",
+    "pageSummary": "Trang {{page}} / {{totalPages}}",
+    "report": "Báo cáo",
+    "reply": "Phản hồi"
+  },
+  "status": {
+    "PUBLISHED": "Đang hiển thị",
+    "PENDING_MODERATION": "Chờ kiểm duyệt",
+    "HIDDEN": "Đã ẩn"
+  },
+  "report": {
+    "title": "Báo cáo đánh giá vi phạm",
+    "description": "Đánh giá vẫn hiển thị cho tới khi đủ số báo cáo hoặc Quản trị viên xử lý.",
+    "label": "Lý do báo cáo",
+    "placeholder": "VD: Nội dung xúc phạm, quảng cáo, không liên quan đến sản phẩm...",
+    "confirm": "Gửi báo cáo",
+    "success": "Đã gửi báo cáo. Cảm ơn bạn đã giúp giữ cộng đồng lành mạnh.",
+    "hiddenAfterReport": "Đã gửi báo cáo. Đánh giá đã được tạm ẩn để chờ kiểm duyệt.",
+    "loginToReport": "Đăng nhập để báo cáo"
+  },
+  "reply": {
+    "title": "Phản hồi đánh giá",
+    "description": "Phản hồi hiển thị công khai dưới đánh giá và chỉ gửi được 1 lần.",
+    "label": "Nội dung phản hồi",
+    "placeholder": "Cảm ơn bạn đã mua hàng...",
+    "confirm": "Gửi phản hồi",
+    "success": "Đã gửi phản hồi."
+  },
+  "dialog": {
+    "required": "Vui lòng nhập nội dung",
+    "tooLong": "Tối đa {{max}} ký tự",
+    "counter": "{{count}}/{{max}}",
+    "cancel": "Hủy",
+    "submitting": "Đang gửi..."
+  },
+  "mine": {
+    "title": "Đánh giá của tôi",
+    "subtitle": "Đánh giá sản phẩm đã nhận trong vòng 14 ngày kể từ khi giao hàng thành công.",
+    "pickTitle": "Gói hàng chờ đánh giá",
+    "pickDescription": "Chọn gói hàng đã giao để đánh giá từng sản phẩm.",
+    "pickAction": "Đánh giá sản phẩm",
+    "packageCode": "Gói {{code}}",
+    "orderCode": "Đơn {{code}}",
+    "noPackages": "Chưa có gói hàng nào đã giao để đánh giá.",
+    "toOrders": "Xem đơn hàng của tôi",
+    "ordersLoadError": "Tạm thời chưa tải được danh sách đơn hàng.",
+    "orderLoadError": "Tạm thời chưa tải được thông tin đơn hàng.",
+    "backToOrder": "Quay lại đơn hàng",
+    "backToList": "Chọn gói hàng khác",
+    "notReviewable": "Gói hàng này chưa được giao nên chưa thể đánh giá.",
+    "itemNotFound": "Không tìm thấy sản phẩm cần đánh giá trong đơn hàng.",
+    "quantity": "Số lượng {{count}}"
+  },
+  "form": {
+    "contentLabel": "Nhận xét (không bắt buộc)",
+    "contentPlaceholder": "Chia sẻ cảm nhận về chất lượng sản phẩm, đóng gói, giao hàng...",
+    "imagesLabel": "Ảnh thực tế (tối đa {{max}} ảnh)",
+    "imagesHint": "JPEG, PNG hoặc WebP, tối đa 5MB mỗi ảnh.",
+    "addImages": "Thêm ảnh",
+    "removeImage": "Bỏ ảnh {{index}}",
+    "submit": "Gửi đánh giá",
+    "submitting": "Đang gửi đánh giá...",
+    "starsRequired": "Vui lòng chọn số sao",
+    "contentTooLong": "Nhận xét tối đa {{max}} ký tự",
+    "tooManyImages": "Chỉ được chọn tối đa {{max}} ảnh",
+    "imageType": "Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP",
+    "imageSize": "Ảnh vượt quá dung lượng tối đa 5MB",
+    "submitted": "Đã gửi đánh giá",
+    "submittedPending": "Đã gửi — đánh giá đang chờ kiểm duyệt trước khi hiển thị.",
+    "alreadyReviewed": "Bạn đã đánh giá sản phẩm này.",
+    "windowClosed": "Đã hết hạn đánh giá sản phẩm này.",
+    "eligibilityPending": "Hệ thống đang cập nhật thông tin giao hàng. Vui lòng thử lại sau ít phút.",
+    "retry": "Thử lại"
+  },
+  "seller": {
+    "title": "Đánh giá sản phẩm",
+    "subtitle": "Xem đánh giá theo từng sản phẩm, phản hồi 1 lần và báo cáo đánh giá vi phạm.",
+    "productLabel": "Sản phẩm",
+    "productPlaceholder": "— Chọn sản phẩm —",
+    "pickProduct": "Chọn một sản phẩm để xem đánh giá.",
+    "noProducts": "Gian hàng chưa có sản phẩm nào.",
+    "productsLoadError": "Tạm thời chưa tải được danh sách sản phẩm."
+  },
+  "admin": {
+    "title": "Kiểm duyệt đánh giá",
+    "subtitle": "Đánh giá chứa từ cấm / liên kết ngoài hoặc bị báo cáo nhiều lần. Hồ sơ cũ nhất hiển thị trước.",
+    "loadError": "Tạm thời chưa tải được hàng chờ kiểm duyệt.",
+    "empty": "Không còn đánh giá nào chờ kiểm duyệt.",
+    "openReports": "{{count}} báo cáo đang mở",
+    "reportsTitle": "Báo cáo",
+    "reportStatus": {
+      "OPEN": "Đang mở",
+      "DISMISSED": "Đã bỏ qua",
+      "ACTIONED": "Đã xử lý"
+    },
+    "reporterRole": {
+      "BUYER": "Người mua",
+      "SHOP_OWNER": "Nhà bán",
+      "SELLER": "Nhà bán"
+    },
+    "moderationReason": "Lý do vào hàng chờ",
+    "reviewId": "mã đánh giá",
+    "productLink": "Xem sản phẩm",
+    "publish": "Cho hiển thị",
+    "hide": "Ẩn đánh giá",
+    "publishTitle": "Cho hiển thị đánh giá",
+    "publishDescription": "Đánh giá sẽ hiển thị công khai và các báo cáo đang mở được đánh dấu đã bỏ qua.",
+    "hideTitle": "Ẩn đánh giá",
+    "hideDescription": "Đánh giá bị ẩn khỏi trang sản phẩm và không còn tính vào điểm trung bình.",
+    "published": "Đã cho hiển thị đánh giá.",
+    "hidden": "Đã ẩn đánh giá.",
+    "conflict": "Đánh giá vừa được Quản trị viên khác xử lý. Hàng chờ đã được tải lại.",
+    "dismiss": "Đóng thông báo"
+  }
+}

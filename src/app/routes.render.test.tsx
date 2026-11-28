@@ -218,6 +218,40 @@ describe('portal rendering by role', () => {
     expect(await render('/admin/moderation/products', ['CS'])).toContain(FORBIDDEN)
   })
 
+  it('seller and admin can open all T1-11 reporting, config, audit and system routes with RBAC enforced', async () => {
+    const sellerHtml = await render('/seller', ['BUYER', 'SELLER'])
+    expect(sellerHtml).toContain('Tổng quan hiệu suất gian hàng')
+    expect(sellerHtml).not.toContain('T1-11')
+    expect(sellerHtml).not.toContain(FORBIDDEN)
+
+    const adminPaths: Array<{ path: string; expected: string }> = [
+      { path: '/admin', expected: 'Báo cáo tổng quan toàn sàn' },
+      { path: '/admin/orders', expected: 'Giám sát đơn hàng toàn sàn' },
+      { path: '/admin/transactions', expected: 'Giám sát giao dịch thanh toán' },
+      { path: '/admin/config/params', expected: 'Quản lý tham số nghiệp vụ động (PRM-01..21)' },
+      { path: '/admin/audit-logs', expected: 'Nhật ký kiểm toán bất biến' },
+      { path: '/admin/system', expected: 'Giám sát sức khỏe dịch vụ &amp; DLQ Replay' },
+    ]
+    for (const item of adminPaths) {
+      const html = await render(item.path, ['ADMINISTRATOR'])
+      expect(html).toContain(item.expected)
+      expect(html).not.toContain('T1-11')
+      expect(html).not.toContain(FORBIDDEN)
+    }
+
+    const csTx = await render('/admin/transactions', ['CS'])
+    expect(csTx).toContain('Giám sát giao dịch thanh toán')
+    expect(csTx).not.toContain(FORBIDDEN)
+
+    const csAdminIndex = await render('/admin', ['CS'])
+    expect(csAdminIndex).not.toContain('Báo cáo tổng quan toàn sàn')
+    for (const adminOnlyPath of ['/admin/config/params', '/admin/audit-logs', '/admin/system']) {
+      expect(await render(adminOnlyPath, ['CS'])).toContain(FORBIDDEN)
+    }
+    expect(await render('/admin', ['BUYER'])).toContain(FORBIDDEN)
+    expect(await render('/seller', ['ADMINISTRATOR'])).toContain(FORBIDDEN)
+  })
+
   it('login page explains a forced logout because the account was locked', async () => {
     lockoutAuthSession('Tài khoản của bạn đã bị khóa bởi quản trị viên.')
     expect(await render('/login')).toContain('Tài khoản của bạn đã bị khóa bởi quản trị viên')

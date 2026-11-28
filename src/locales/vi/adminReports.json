@@ -1,0 +1,277 @@
+{
+  "common": {
+    "applyFilter": "Áp dụng",
+    "clearFilter": "Xóa bộ lọc",
+    "refresh": "Làm mới",
+    "all": "Tất cả",
+    "none": "—",
+    "invalidUuid": "Vui lòng nhập đúng định dạng UUID.",
+    "invalidDateRange": "Ngày bắt đầu không được lớn hơn ngày kết thúc.",
+    "pagination": {
+      "summary": "Trang {{page}} / {{totalPages}} · {{total}} bản ghi",
+      "prev": "Trước",
+      "next": "Sau"
+    },
+    "presets": {
+      "7d": "7 ngày",
+      "30d": "30 ngày",
+      "90d": "90 ngày"
+    },
+    "fromDate": "Từ ngày",
+    "toDate": "Đến ngày",
+    "duration": {
+      "seconds": "{{count}} giây",
+      "minutes": "{{count}} phút",
+      "hours": "{{count}} giờ",
+      "days": "{{count}} ngày"
+    },
+    "view": "Xem chi tiết",
+    "hide": "Thu gọn"
+  },
+  "dashboard": {
+    "title": "Báo cáo tổng quan toàn sàn",
+    "subtitle": "Theo dõi doanh thu GMV, đơn hàng, hoàn tiền và phát hiện gian hàng có dấu hiệu bất thường (UTC+7).",
+    "loadError": "Dịch vụ tổng hợp báo cáo SVC-RPT hiện tạm gián đoạn. Vui lòng thử lại sau giây lát.",
+    "emptyChart": "Chưa có dữ liệu tổng hợp theo ngày trong khoảng thời gian đã chọn.",
+    "kpis": {
+      "gmv": "Tổng GMV thanh toán",
+      "orders": "Tổng đơn hàng",
+      "cancelRate": "Tỷ lệ hủy đơn",
+      "cancelledCount": "{{count}} đơn hủy",
+      "refunds": "Tổng tiền hoàn",
+      "growth": "Người dùng & Nhà bán mới",
+      "growthHint": "+{{users}} người dùng · +{{sellers}} nhà bán",
+      "openExceptions": "Ngoại lệ đang mở",
+      "viewExceptions": "Xem hàng đợi ngoại lệ"
+    },
+    "charts": {
+      "revenueTitle": "Doanh thu GMV & Hoàn tiền theo ngày",
+      "ordersTitle": "Số lượng đơn hàng & Đơn hủy theo ngày",
+      "gmvLabel": "GMV (VND)",
+      "refundLabel": "Hoàn tiền (VND)",
+      "ordersLabel": "Tổng đơn",
+      "cancelledLabel": "Đơn hủy",
+      "ssrPlaceholder": "Đang tải biểu đồ trực quan..."
+    },
+    "sellers": {
+      "title": "Hiệu suất & Cảnh báo bất thường nhà bán",
+      "subtitle": "Tự động đánh dấu các gian hàng có tỷ lệ hủy/quá hạn cao, giao thất bại nhiều hoặc không phản hồi khiếu nại.",
+      "searchPlaceholder": "Tìm theo tên shop hoặc UUID gian hàng...",
+      "anomalyOnly": "Chỉ hiện gian hàng bất thường",
+      "sortLabel": "Sắp xếp",
+      "sorts": {
+        "anomalies": "Bất thường ưu tiên",
+        "orders": "Nhiều đơn nhất",
+        "cancel_rate": "Tỷ lệ hủy cao nhất",
+        "complaints": "Nhiều khiếu nại nhất",
+        "rating_asc": "Điểm sao thấp nhất"
+      },
+      "loadError": "Không thể tải báo cáo hiệu suất nhà bán từ SVC-RPT.",
+      "empty": "Không có gian hàng nào khớp bộ lọc hiện tại.",
+      "anomalousBadge": "Cảnh báo bất thường",
+      "normalBadge": "Ổn định",
+      "cols": {
+        "shop": "Gian hàng",
+        "orders": "Đơn / Đã giao",
+        "cancelRate": "Tỷ lệ hủy / Quá hạn",
+        "deliveryFailed": "Giao thất bại",
+        "complaints": "Khiếu nại / Quá hạn PH",
+        "rating": "Đánh giá TB",
+        "alert": "Cảnh báo"
+      },
+      "timeoutDetail": "Quá hạn: {{rate}} ({{count}})",
+      "noRespDetail": "Chưa PH: {{count}}",
+      "deliveredDetail": "Đã giao: {{count}}"
+    }
+  },
+  "orders": {
+    "title": "Giám sát đơn hàng toàn sàn",
+    "subtitle": "Bản sao đọc (Read Model) đồng bộ qua sự kiện miền — chỉ dùng để tra cứu & đối soát.",
+    "loadError": "Không thể tải danh sách đơn hàng từ SVC-RPT.",
+    "emptyTitle": "Không tìm thấy đơn hàng phù hợp",
+    "emptyHint": "Hãy thử thay đổi trạng thái hoặc khoảng thời gian tìm kiếm.",
+    "filters": {
+      "searchCode": "Tìm theo mã đơn (VD: ORD-...)",
+      "statusLabel": "Trạng thái đơn",
+      "lookupType": "Trường UUID",
+      "orderId": "UUID Đơn tổng",
+      "buyerId": "UUID Người mua",
+      "lookupPlaceholder": "Nhập UUID cần tra cứu..."
+    },
+    "cols": {
+      "order": "Mã đơn & UUID",
+      "buyer": "Người mua",
+      "status": "Trạng thái",
+      "grandTotal": "Tổng tiền",
+      "sellerOrders": "Gói SellerOrder",
+      "timestamps": "Thời gian"
+    },
+    "paidAt": "Thanh toán: {{time}}",
+    "createdAt": "Tạo lúc: {{time}}"
+  },
+  "transactions": {
+    "title": "Giám sát giao dịch thanh toán",
+    "subtitle": "Theo dõi phiên thanh toán, mã tham chiếu cổng VNPay/Mock và số tiền đã hoàn.",
+    "loadError": "Không thể tải danh sách giao dịch từ SVC-RPT.",
+    "emptyTitle": "Không tìm thấy giao dịch phù hợp",
+    "emptyHint": "Thay đổi mã tham chiếu cổng thanh toán hoặc khoảng ngày tìm kiếm.",
+    "filters": {
+      "gatewayRef": "Tìm theo mã tham chiếu cổng (gatewayRef)...",
+      "statusLabel": "Trạng thái giao dịch",
+      "orderId": "Lọc theo UUID Đơn hàng..."
+    },
+    "cols": {
+      "payment": "Giao dịch & Đơn hàng",
+      "gatewayRef": "Mã tham chiếu cổng",
+      "status": "Trạng thái",
+      "amount": "Số tiền",
+      "refunded": "Đã hoàn",
+      "timestamps": "Thời gian"
+    },
+    "completedAt": "Hoàn tất: {{time}}",
+    "createdAt": "Tạo lúc: {{time}}"
+  },
+  "params": {
+    "title": "Quản lý tham số nghiệp vụ động (PRM-01..21)",
+    "subtitle": "Thay đổi tham số có hiệu lực ngay trên toàn bộ dịch vụ qua Consul KV & sự kiện config.changed.",
+    "hotReloadNotice": "Mọi cập nhật đều yêu cầu lý do tối thiểu 10 ký tự (BR-GEN-04), tăng version lạc quan và tự động phát config.changed mà không cần rebuild.",
+    "loadError": "Không thể tải danh sách tham số nghiệp vụ từ SVC-RPT.",
+    "searchPlaceholder": "Tìm theo mã PRM, tên tham số hoặc mô tả...",
+    "empty": "Không có tham số nào khớp từ khóa tìm kiếm.",
+    "updateSuccessTitle": "Đã cập nhật tham số {{name}} lên phiên bản v{{version}}",
+    "updateSuccessDesc": "Giá trị mới \"{{value}}\" đã được đồng bộ qua Consul KV & sự kiện config.changed, áp dụng ngay không cần khởi động lại dịch vụ.",
+    "cols": {
+      "code": "Mã / Tên",
+      "value": "Giá trị hiện tại",
+      "range": "Khoảng cho phép",
+      "version": "Phiên bản & Hiệu lực",
+      "description": "Mô tả & Lý do gần nhất",
+      "action": "Thao tác"
+    },
+    "versionTag": "v{{version}}",
+    "bounds": "{{min}} – {{max}}",
+    "editBtn": "Chỉnh sửa",
+    "dialog": {
+      "title": "Cập nhật tham số {{name}} ({{code}})",
+      "description": "Phiên bản hiện tại: v{{version}} ({{currentValue}} {{unit}}). {{description}}",
+      "valueLabel": "Giá trị mới ({{unit}})",
+      "allowedHint": "Khoảng hợp lệ: {{min}} đến {{max}}",
+      "boolTrue": "true (Bật)",
+      "boolFalse": "false (Tắt)",
+      "confirmBtn": "Lưu & Phát config.changed",
+      "errors": {
+        "required": "Vui lòng nhập giá trị mới.",
+        "boolInvalid": "Chỉ chấp nhận giá trị true hoặc false.",
+        "numberInvalid": "Giá trị phải là số hợp lệ.",
+        "integerInvalid": "Giá trị phải là số nguyên hợp lệ.",
+        "belowMin": "Giá trị không được nhỏ hơn {{min}}.",
+        "aboveMax": "Giá trị không được lớn hơn {{max}}.",
+        "reserveLtPay": "Hạn giữ chỗ T_RESERVE ({{reserve}} phút) phải lớn hơn hoặc bằng hạn thanh toán T_PAY ({{pay}} phút).",
+        "payGtReserve": "Hạn thanh toán T_PAY ({{pay}} phút) không được vượt quá hạn giữ chỗ T_RESERVE ({{reserve}} phút)."
+      }
+    }
+  },
+  "auditLogs": {
+    "title": "Nhật ký kiểm toán bất biến",
+    "subtitle": "Lưu trữ append-only mọi tác động quản trị và sự kiện hệ thống (DC-19).",
+    "appendOnlyBadge": "Chỉ đọc · Không cho phép sửa/xóa (DC-19)",
+    "loadError": "Không thể tải nhật ký kiểm toán từ SVC-RPT.",
+    "emptyTitle": "Không có bản ghi kiểm toán nào",
+    "emptyHint": "Hãy thử mở rộng khoảng thời gian hoặc xóa bộ lọc.",
+    "filters": {
+      "actor": "Actor / UUID tác nhân...",
+      "role": "Vai trò",
+      "action": "Mã hành động (VD: CONFIG_PARAM_UPDATED)...",
+      "entityType": "Loại thực thể...",
+      "entityId": "Mã thực thể...",
+      "correlationId": "X-Correlation-Id (UUID)..."
+    },
+    "cols": {
+      "at": "Thời điểm",
+      "actor": "Tác nhân",
+      "action": "Hành động",
+      "entity": "Đối tượng",
+      "reason": "Lý do & Trạng thái",
+      "correlationId": "Correlation ID"
+    },
+    "beforeState": "Trước thay đổi",
+    "afterState": "Sau thay đổi",
+    "toggleDiff": "Xem diff trạng thái",
+    "hideDiff": "Ẩn diff"
+  },
+  "system": {
+    "title": "Giám sát sức khỏe dịch vụ & DLQ Replay",
+    "subtitle": "Kiểm tra trạng thái đăng ký Consul của 11 dịch vụ và phát lại thông điệp lỗi trong NATS JetStream SOA_DLQ.",
+    "health": {
+      "heading": "Sức khỏe các dịch vụ SOA (Consul)",
+      "overall": "Tổng trạng thái: {{status}}",
+      "checkedAt": "Kiểm tra lúc {{time}}",
+      "loadError": "Không thể kết nối Consul để kiểm tra sức khỏe dịch vụ (503).",
+      "instances": "{{passing}}/{{total}} instance hoạt động",
+      "showInstances": "Chi tiết instance ({{count}})",
+      "statuses": {
+        "healthy": "Hoạt động tốt",
+        "degraded": "Suy giảm",
+        "unhealthy": "Ngừng hoạt động",
+        "missing": "Chưa đăng ký"
+      }
+    },
+    "dlq": {
+      "heading": "Hàng đợi thư chết — NATS JetStream (SOA_DLQ)",
+      "loadError": "Không thể kết nối NATS JetStream để đọc SOA_DLQ (503).",
+      "empty": "Không có thông điệp lỗi nào trong SOA_DLQ.",
+      "eventTypeFilter": "Lọc theo eventType...",
+      "consumerFilter": "Lọc theo consumer...",
+      "replayBtn": "Phát lại (Replay)",
+      "notReplayable": "Không thể phát lại (lỗi phong bì)",
+      "replaySuccessTitle": "Đã phát lại thông điệp DLQ #{{id}}",
+      "replaySuccessDesc": "Sự kiện {{eventType}} ({{eventId}}) đã được đưa lại vào {{targetSubject}} và ghi Nhật ký kiểm toán.",
+      "dialogTitle": "Xác nhận phát lại thông điệp DLQ #{{id}}",
+      "dialogDesc": "Phát lại sự kiện {{eventType}} của consumer {{consumer}} về SOA_EVENTS để xử lý lại.",
+      "dialogConfirm": "Xác nhận phát lại",
+      "rawPayloadBtn": "Xem Raw Payload",
+      "cols": {
+        "id": "Seq / Subject",
+        "event": "Sự kiện & Event ID",
+        "consumer": "Consumer & Số lần thử",
+        "error": "Nguyên nhân lỗi",
+        "age": "Tuổi lỗi",
+        "action": "Thao tác"
+      },
+      "attemptsCount": "{{count}} lần"
+    }
+  },
+  "seller": {
+    "title": "Tổng quan hiệu suất gian hàng",
+    "subtitle": "Theo dõi doanh thu, tình trạng đơn chờ xác nhận và các chỉ số vận hành riêng của shop bạn.",
+    "loadError": "Tạm thời chưa thể tải dữ liệu hiệu suất từ dịch vụ báo cáo SVC-RPT.",
+    "noShopTitle": "Chưa có dữ liệu báo cáo cho gian hàng của bạn",
+    "noShopHint": "Nếu bạn vừa mới đăng ký hoặc mở gian hàng, hệ thống sẽ đồng bộ chỉ số ngay khi có đơn hàng hoặc cập nhật gian hàng.",
+    "goToShopBtn": "Xem thông tin gian hàng",
+    "awaitingBanner": "Bạn đang có {{count}} gói đơn hàng chờ xác nhận. Vui lòng xử lý sớm trước hạn T_CONFIRM!",
+    "goToOrdersBtn": "Xử lý đơn hàng ngay",
+    "kpis": {
+      "gmv": "GMV trong kỳ",
+      "awaiting": "Chờ xác nhận",
+      "periodOrders": "Đơn trong kỳ",
+      "refunds": "Hoàn tiền trong kỳ",
+      "rating": "Đánh giá trung bình",
+      "cancelRate": "Tỷ lệ hủy do shop"
+    },
+    "stats": {
+      "heading": "Chỉ số vận hành tích lũy toàn thời gian",
+      "totalOrders": "Tổng đơn tích lũy",
+      "delivered": "Giao thành công",
+      "deliveryFailed": "Giao thất bại",
+      "timeout": "Quá hạn xác nhận",
+      "rejected": "Shop từ chối",
+      "complaints": "Khiếu nại (Chưa PH)"
+    },
+    "chartTitle": "Chuỗi doanh thu & đơn hàng theo ngày (UTC+7)",
+    "quickLinks": {
+      "orders": "Quản lý đơn hàng",
+      "products": "Quản lý sản phẩm",
+      "complaints": "Khiếu nại của shop"
+    }
+  }
+}

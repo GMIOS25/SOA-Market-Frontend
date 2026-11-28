@@ -1,6 +1,15 @@
 import type { ReactElement } from 'react'
 import type { RouteObject } from 'react-router'
 import {
+  AdminAuditLogsPage,
+  AdminDashboardPage,
+  AdminOrdersPage,
+  AdminParamsPage,
+  AdminSystemPage,
+  AdminTransactionsPage,
+  SellerDashboardPage,
+} from '@/features/admin-reports'
+import {
   AddressesPage,
   AdminUsersPage,
   ForgotPasswordPage,
@@ -78,7 +87,7 @@ function routesFromNav(base: string, groups: NavGroup[], pages: Partial<Record<N
 }
 
 const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
-  sellerDashboard: soon('items.sellerDashboard', 'T1-11'),
+  sellerDashboard: <SellerDashboardPage />,
   sellerShop: <SellerShopPage />,
   sellerProducts: <SellerProductsPage />,
   sellerInventory: <SellerInventoryPage />,
@@ -88,10 +97,10 @@ const SELLER_PAGES: Partial<Record<NavItemId, ReactElement>> = {
 }
 
 const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
-  adminDashboard: soon('items.adminDashboard', 'T1-11'),
+  adminDashboard: <AdminDashboardPage />,
   adminSellerApplications: <AdminSellerApplicationsPage />,
-  adminOrders: soon('items.adminOrders', 'T1-11'),
-  adminTransactions: soon('items.adminTransactions', 'T1-11'),
+  adminOrders: <AdminOrdersPage />,
+  adminTransactions: <AdminTransactionsPage />,
   adminExceptions: <AdminExceptionsPage />,
   adminCategories: <AdminCategoriesPage />,
   adminUsers: <AdminUsersPage />,
@@ -99,9 +108,9 @@ const ADMIN_PAGES: Partial<Record<NavItemId, ReactElement>> = {
   adminModerationProducts: <AdminProductModerationPage />,
   adminModerationReviews: soon('items.adminModerationReviews', 'T2-11'),
   adminComplaintsQueue: <AdminComplaintsQueuePage />,
-  adminParams: soon('items.adminParams', 'T1-11'),
-  adminAuditLogs: soon('items.adminAuditLogs', 'T1-11'),
-  adminSystem: soon('items.adminSystem', 'T1-11'),
+  adminParams: <AdminParamsPage />,
+  adminAuditLogs: <AdminAuditLogsPage />,
+  adminSystem: <AdminSystemPage />,
 }
 
 const adminRoutes = routesFromNav('/admin', ADMIN_NAV, ADMIN_PAGES).map((route) =>
